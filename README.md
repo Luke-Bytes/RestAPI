@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a **read-only REST API** designed to provide access to a MongoDB database. It serves as a public backend component for interacting with data created by [Teams Discord Bot](https://github.com/Luke-Bytes/TeamsDiscordBot).
+This is intended as a **read-only REST API** designed to provide access to a MongoDB database. It serves as a public backend component for interacting with data created by [Teams Discord Bot](https://github.com/Luke-Bytes/TeamsDiscordBot).
 Contributions are welcome!
 
 ---
@@ -20,7 +20,8 @@ Contributions are welcome!
 1. Clone this repository to your local machine:
 2. Create a .env in the root and follow the sample env's format
 3. Npm install
-4. Npm run start
+4. Npm run build
+5. Npm run start
 
 ## Current Routes
 1. /api/player/{latestIGN}
