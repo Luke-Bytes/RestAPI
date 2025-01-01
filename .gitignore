@@ -1,0 +1,17 @@
+*.iml
+out
+gen
+node_modules
+dist
+.env
+.idea/git_toolbox_blame.xml
+.idea/git_toolbox_prj.xml
+.idea/material_theme_project_new.xml
+.idea/codeStyles
+/shelf/
+/workspace.xml
+/httpRequests/
+/dataSources/
+/dataSources.local.xml
+logs/*
+!logs/.gitkeep
