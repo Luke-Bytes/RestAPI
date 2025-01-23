@@ -7,13 +7,20 @@
     "start": "node dist/server.js",
     "start:pm2": "pm2 start dist/server.js",
     "stop:pm2": "pm2 stop dist/server.js",
-    "logs": "ls -t logs/*.log | head -n 1 | xargs tail -n 300"
+    "logs": "ls -t logs/*.log | head -n 1 | xargs tail -n 300",
+    "clean": "rimraf dist",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "lint:fix": "eslint . --fix",
+    "check-format": "prettier --check ."
   },
   "dependencies": {
     "ajv": "^8.17.1",
     "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
     "debug": "~2.6.9",
     "dotenv": "^16.4.7",
+    "eslint-plugin-import": "^2.31.0",
     "express": "~4.16.1",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.5.0",
@@ -25,15 +32,25 @@
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0"
   },
-  "main": "app.js",
+  "main": "dist/server.js",
   "keywords": [],
   "author": "Luke",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.3",
     "@types/sanitize-html": "^2.13.0",
-    "typescript": "^5.7.2"
+    "@typescript-eslint/eslint-plugin": "^8.21.0",
+    "@typescript-eslint/parser": "^8.21.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.21.0"
   }
 }

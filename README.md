@@ -24,5 +24,6 @@ Contributions are welcome!
 5. Npm run start
 
 ## Current Routes
+
 1. /api/player/{latestIGN}
 2. /api/custom-query
