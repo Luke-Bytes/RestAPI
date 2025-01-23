@@ -30,12 +30,12 @@ const apiLimiter = rateLimit({
 
 app.use("/api", apiLimiter);
 
-app.use(express.static(path.join(__dirname, "..src//public")));
+app.use(express.static(path.join(__dirname, "../src//public")));
 
 app.use("/api", routes);
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "..src/public/index.html"));
+  res.sendFile(path.join(__dirname, "../src/public/index.html"));
 });
 
 app.use(errorHandler);
