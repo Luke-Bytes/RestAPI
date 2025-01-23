@@ -4,137 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Player Stats</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f9f9f9;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        color: #333;
-      }
-
-      h1 {
-        margin-bottom: 20px;
-      }
-
-      .input-container {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-      }
-
-      input[type="text"] {
-        padding: 10px;
-        font-size: 16px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        width: 250px;
-      }
-
-      button {
-        padding: 10px 20px;
-        font-size: 16px;
-        color: #fff;
-        background-color: #007bff;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-      }
-
-      button:hover {
-        background-color: #0056b3;
-      }
-
-      #feedback {
-        color: red;
-        margin-bottom: 20px;
-        font-weight: bold;
-      }
-
-      #result {
-        background: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        width: 100%;
-        max-width: 400px;
-      }
-
-      .stat {
-        display: flex;
-        justify-content: space-between;
-        margin: 10px 0;
-      }
-
-      .stat span {
-        font-weight: bold;
-      }
-    </style>
-    <script>
-      async function fetchPlayerData() {
-        const input = document.getElementById("textInput").value;
-
-        const resultElement = document.getElementById("result");
-        resultElement.innerHTML = "";
-
-        const feedbackElement = document.getElementById("feedback");
-        feedbackElement.innerText = "";
-
-        if (!input.trim()) {
-          feedbackElement.innerText = "Please enter a player name.";
-          return;
-        }
-
-        try {
-          const response = await fetch(
-            `/api/player/${encodeURIComponent(input)}`
-          );
-
-          if (!response.ok) {
-            throw new Error(`Server responded with status: ${response.status}`);
-          }
-
-          const data = await response.json();
-
-          if (Object.keys(data).length === 0) {
-            feedbackElement.innerText =
-              "No associated user data found for that player name.";
-          } else {
-            displayPlayerData(data);
-          }
-        } catch (error) {
-          feedbackElement.innerText = `Failed to fetch data. Error: ${error.message}`;
-        }
-      }
-
-      function displayPlayerData(data) {
-        const resultElement = document.getElementById("result");
-
-        resultElement.innerHTML = `
-                <div class="stat"><span>Player Name:</span> ${data.latestIGN}</div>
-                <div class="stat"><span>Elo:</span> ${data.elo}</div>
-                <div class="stat"><span>Wins:</span> ${data.wins}</div>
-                <div class="stat"><span>Losses:</span> ${data.losses}</div>
-                <div class="stat"><span>Win Streak:</span> ${data.winStreak}</div>
-                <div class="stat"><span>Lose Streak:</span> ${data.loseStreak}</div>
-                <div class="stat"><span>Biggest Win Streak:</span> ${data.biggestWinStreak}</div>
-                <div class="stat"><span>Biggest Losing Streak:</span> ${data.biggestLosingStreak}</div>
-                <div class="stat"><span>Primary Minecraft Account:</span> ${data.primaryMinecraftAccount}</div>
-            `;
-      }
-    </script>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/script.js" defer></script>
   </head>
   <body>
     <h1>Player Stats</h1>
     <div class="input-container">
       <input type="text" id="textInput" placeholder="Player Name" />
-      <button onclick="fetchPlayerData()">Submit</button>
+      <button id="fetch-data-button">Click me</button>
     </div>
     <div id="feedback"></div>
     <div id="result"></div>

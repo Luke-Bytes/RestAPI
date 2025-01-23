@@ -14,9 +14,27 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https:"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: [
+          "'self'",
+          "http://anniwars.win",
+          "https://anniwars.win",
+          "http://www.anniwars.win",
+          "https://www.anniwars.win",
+        ],
+        imgSrc: ["'self'", "data:"],
+      },
+    },
+  })
+);
 app.use(mongoSanitize());
 app.use(sanitizeInput);
 
