@@ -15,9 +15,7 @@ document
     }
 
     try {
-      const response = await fetch(
-        `https://your-api-domain.com/api/player/${encodeURIComponent(input)}`
-      );
+      const response = await fetch(`/api/player/${encodeURIComponent(input)}`);
 
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
