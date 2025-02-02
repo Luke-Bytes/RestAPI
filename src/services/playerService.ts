@@ -2,7 +2,14 @@ import { connectToDatabase } from "../config/database";
 
 export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
   const db = await connectToDatabase();
-  console.log("Querying for IGN:", ignUsed);
+
+  const player = await db.collection("Player").findOne({ latestIGN: ignUsed });
+  if (!player) {
+    console.log(`Player not found for IGN: ${ignUsed}`);
+    return null;
+  }
+
+  console.log("Found player:", player);
 
   let seasonId;
   if (!season) {
@@ -23,12 +30,20 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
     seasonId = specificSeason.id;
   }
 
-  const result = await db.collection("PlayerStats").findOne({
-    playerId: (await db.collection("Player").findOne({ latestIGN: ignUsed }))
-      ?.id,
+  const playerStats = await db.collection("PlayerStats").findOne({
+    playerId: player.id,
     seasonId: seasonId,
   });
 
-  console.log("Query result:", JSON.stringify(result, null, 2));
-  return result;
+  if (!playerStats) {
+    console.log(`No stats found for player ${ignUsed} in season ${seasonId}`);
+    return null;
+  }
+
+  console.log("Player stats:", playerStats);
+
+  return {
+    ...player,
+    ...playerStats,
+  };
 };
