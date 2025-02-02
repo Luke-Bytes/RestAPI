@@ -7,6 +7,6 @@ const router = Router();
 
 router.use("/player", playerRoutes);
 router.use("/custom-query", queryRoutes);
-router.use("/season", seasonRoutes);
+router.use("/seasons", seasonRoutes);
 
 export default router;

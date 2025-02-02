@@ -3,6 +3,6 @@ import { getSeasons } from "../controllers/seasonController";
 
 const router = Router();
 
-router.get("/:season", getSeasons);
+router.get("/", getSeasons);
 
 export default router;
