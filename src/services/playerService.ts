@@ -13,16 +13,26 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
 
   let seasonId;
   if (!season) {
-    const activeSeason = await db.collection("Season").findOne({ isActive: true });
+    const activeSeason = await db
+      .collection("Season")
+      .findOne({ isActive: true });
     if (!activeSeason) {
-      throw new Error("No active season found");
+      console.error(
+        "No active season found. Ensure one season has `isActive: true`."
+      );
+      return null;
     }
     console.log(`Using active season with id: ${activeSeason.id}`);
     seasonId = activeSeason.id;
   } else {
-    const specificSeason = await db.collection("Season").findOne({ number: parseInt(season) });
+    const specificSeason = await db
+      .collection("Season")
+      .findOne({ number: parseInt(season) });
     if (!specificSeason) {
-      throw new Error(`Season ${season} not found`);
+      console.error(
+        `Season ${season} not found. Check if season numbers are correct.`
+      );
+      return null;
     }
     console.log(`Using specific season with id: ${specificSeason.id}`);
     seasonId = specificSeason.id;
@@ -30,7 +40,7 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
 
   const playerStats = await db.collection("PlayerStats").findOne({
     playerId: player.id,
-    seasonId: seasonId
+    seasonId: seasonId,
   });
 
   if (!playerStats) {
@@ -42,6 +52,6 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
 
   return {
     ...player,
-    ...playerStats
+    ...playerStats,
   };
 };
