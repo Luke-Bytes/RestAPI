@@ -1,5 +1,14 @@
 import { connectToDatabase } from "../config/database";
 
+const API_BASE_URL = "http://localhost:3000/api/seasons";
+
+interface SeasonResponse {
+  id: string;
+  number: number;
+  name?: string;
+  isActive: boolean;
+}
+
 export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
   const db = await connectToDatabase();
 
@@ -11,31 +20,31 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
 
   console.log("Found player:", player);
 
-  let seasonId;
-  if (!season) {
-    const activeSeason = await db
-      .collection("Season")
-      .findOne({ isActive: true });
-    if (!activeSeason) {
-      console.error(
-        "No active season found. Ensure one season has `isActive: true`."
-      );
-      return null;
+  let seasonId: string;
+  try {
+    let seasonResponse;
+    if (!season) {
+      seasonResponse = await fetch(`${API_BASE_URL}?active=true`);
+    } else {
+      seasonResponse = await fetch(`${API_BASE_URL}/${season}`);
     }
-    console.log(`Using active season with id: ${activeSeason.id}`);
-    seasonId = activeSeason.id;
-  } else {
-    const specificSeason = await db
-      .collection("Season")
-      .findOne({ number: parseInt(season) });
-    if (!specificSeason) {
-      console.error(
-        `Season ${season} not found. Check if season numbers are correct.`
+
+    if (!seasonResponse.ok) {
+      throw new Error(
+        `Failed to fetch season information: ${seasonResponse.statusText}`
       );
-      return null;
     }
-    console.log(`Using specific season with id: ${specificSeason.id}`);
-    seasonId = specificSeason.id;
+
+    const seasonData = (await seasonResponse.json()) as SeasonResponse;
+    if (!seasonData || !seasonData.id) {
+      throw new Error("No valid season data returned from the endpoint.");
+    }
+
+    seasonId = seasonData.id;
+    console.log(`Using season with id: ${seasonId}`);
+  } catch (error) {
+    console.error("Error fetching season information:", error);
+    return null;
   }
 
   const playerStats = await db.collection("PlayerStats").findOne({
