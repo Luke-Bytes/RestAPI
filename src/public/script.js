@@ -111,23 +111,19 @@ async function populateSeasons() {
     }
     const activeSeason = await activeSeasonResponse.json();
 
-    const defaultOption = document.createElement("option");
-    defaultOption.value = activeSeason.number;
-    defaultOption.textContent = `Active Season (${activeSeason.number})`;
-    defaultOption.selected = true;
-    seasonSelect.appendChild(defaultOption);
-
     seasons.forEach((season) => {
       const option = document.createElement("option");
       option.value = season.number;
       option.textContent = `Season ${season.number}`;
-
-      if (season.number !== activeSeason.number) {
-        seasonSelect.appendChild(option);
+      if (season.number === activeSeason.number) {
+        option.selected = true;
       }
+
+      seasonSelect.appendChild(option);
     });
   } catch (error) {
     console.error("Error fetching seasons:", error);
   }
 }
+
 
