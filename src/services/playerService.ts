@@ -14,14 +14,11 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
   const player = await db.collection("Player").findOne({ latestIGN: ignUsed });
 
   if (!player) {
-    console.log(`Player not found for IGN: ${ignUsed}`);
+    console.error(`Player not found for IGN: ${ignUsed}`);
     return null;
   }
 
-  console.log("Found player:", player);
-
   const playerId = player._id.toString();
-  console.log(`Resolved playerId: ${playerId}`);
 
   let seasonId: string;
   try {
@@ -39,14 +36,12 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
     }
 
     const seasonData = (await seasonResponse.json()) as SeasonResponse;
-    console.log("Season data response from API:", seasonData);
 
     if (!seasonData || !seasonData._id) {
       throw new Error("No valid season data returned from the endpoint.");
     }
 
     seasonId = seasonData._id;
-    console.log(`Using season with id: ${seasonId}`);
   } catch (error) {
     console.error("Error fetching season information:", error);
     return null;
@@ -61,16 +56,8 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
     console.error(`PlayerStats not found. Debug info:`);
     console.error(`Queried playerId: ${playerId}`);
     console.error(`Queried seasonId: ${seasonId}`);
-
-    const existingStats = await db.collection("PlayerStats").find({
-      playerId: playerId,
-    }).toArray();
-    console.log(`Existing PlayerStats with playerId:`, existingStats);
-
     return null;
   }
-
-  console.log("Player stats found:", playerStats);
 
   return {
     id: player._id,
