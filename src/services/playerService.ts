@@ -3,7 +3,7 @@ import { connectToDatabase } from "../config/database";
 const API_BASE_URL = "http://localhost:3000/api/seasons";
 
 interface SeasonResponse {
-  id: string;
+  _id: string;
   number: number;
   name?: string;
   isActive: boolean;
@@ -30,27 +30,24 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
     }
 
     if (!seasonResponse.ok) {
-      throw new Error(`Failed to fetch season information: ${seasonResponse.statusText}`);
+      throw new Error(
+        `Failed to fetch season information: ${seasonResponse.statusText}`
+      );
     }
 
-    const seasonData: any = await seasonResponse.json();
+    const seasonData = (await seasonResponse.json()) as SeasonResponse;
     console.log("Season data response from API:", seasonData);
 
-    if (Array.isArray(seasonData) && seasonData.length > 0) {
-      seasonId = seasonData[0].id;
-    } else if (seasonData && seasonData.id) {
-      seasonId = seasonData.id;
-    } else {
+    if (!seasonData || !seasonData._id) {
       throw new Error("No valid season data returned from the endpoint.");
     }
 
+    seasonId = seasonData._id;
     console.log(`Using season with id: ${seasonId}`);
-
   } catch (error) {
     console.error("Error fetching season information:", error);
     return null;
   }
-
 
   const playerStats = await db.collection("PlayerStats").findOne({
     playerId: player.id,
