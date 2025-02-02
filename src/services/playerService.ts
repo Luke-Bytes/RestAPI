@@ -62,7 +62,18 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
   console.log("Player stats found:", playerStats);
 
   return {
-    ...player,
-    ...playerStats,
+    id: player.id,
+    discordSnowflake: player.discordSnowflake,
+    latestIGN: player.latestIGN,
+    primaryMinecraftAccount: player.primaryMinecraftAccount,
+    minecraftAccounts: player.minecraftAccounts,
+    elo: playerStats.elo,
+    wins: playerStats.wins,
+    losses: playerStats.losses,
+    winStreak: playerStats.winStreak,
+    loseStreak: playerStats.loseStreak,
+    biggestWinStreak: playerStats.biggestWinStreak,
+    biggestLosingStreak: playerStats.biggestLosingStreak,
+    seasonId: seasonId,
   };
 };
