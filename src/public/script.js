@@ -49,3 +49,68 @@ function displayPlayerData(data) {
     <div class="stat"><span>Primary Minecraft Account:</span> ${data.primaryMinecraftAccount}</div>
   `;
 }
+
+document.addEventListener("DOMContentLoaded", async function () {
+  await populateSeasons();
+});
+
+document
+  .getElementById("fetch-data-button")
+  .addEventListener("click", async function fetchPlayerData() {
+    const input = document.getElementById("textInput").value;
+    const season = document.getElementById("seasonSelect").value;
+
+    const resultElement = document.getElementById("result");
+    resultElement.innerHTML = "";
+
+    const feedbackElement = document.getElementById("feedback");
+    feedbackElement.innerText = "";
+
+    if (!input.trim()) {
+      feedbackElement.innerText = "Please enter a player name.";
+      return;
+    }
+
+    try {
+      const queryString = season ? `?season=${encodeURIComponent(season)}` : "";
+      const response = await fetch(
+        `/api/player/${encodeURIComponent(input)}${queryString}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (Object.keys(data).length === 0) {
+        feedbackElement.innerText =
+          "No associated user data found for that player name.";
+      } else {
+        displayPlayerData(data);
+      }
+    } catch (error) {
+      feedbackElement.innerText = `Failed to fetch data. Error: ${error.message}`;
+    }
+  });
+
+async function populateSeasons() {
+  const seasonSelect = document.getElementById("seasonSelect");
+
+  try {
+    const response = await fetch("/api/seasons");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch seasons: ${response.status}`);
+    }
+
+    const seasons = await response.json();
+    seasons.forEach((season) => {
+      const option = document.createElement("option");
+      option.value = season.number;
+      option.textContent = `Season ${season.number}`;
+      seasonSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching seasons:", error);
+  }
+}
