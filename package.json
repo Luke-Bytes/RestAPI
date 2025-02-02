@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "lint:fix": "eslint . --fix",
-    "check-format": "prettier --check ."
+    "check-format": "prettier --check .",
+    "rebuild": "git pull && npm run stop:pm2 && npm run build && npm run start:pm2"
   },
   "dependencies": {
     "ajv": "^8.17.1",
