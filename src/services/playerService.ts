@@ -59,14 +59,16 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
     console.error(`Queried playerId: ${player.id}`);
     console.error(`Queried seasonId: ${seasonId}`);
 
-    const existingStats = await db.collection("PlayerStats").find({
-      playerId: player.id,
-    }).toArray();
+    const existingStats = await db
+      .collection("PlayerStats")
+      .find({
+        playerId: player.id,
+      })
+      .toArray();
     console.log(`Existing PlayerStats with playerId:`, existingStats);
 
     return null;
   }
-
 
   console.log("Player stats found:", playerStats);
 
