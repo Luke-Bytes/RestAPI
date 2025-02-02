@@ -30,22 +30,27 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
     }
 
     if (!seasonResponse.ok) {
-      throw new Error(
-        `Failed to fetch season information: ${seasonResponse.statusText}`
-      );
+      throw new Error(`Failed to fetch season information: ${seasonResponse.statusText}`);
     }
 
-    const seasonData = (await seasonResponse.json()) as SeasonResponse;
-    if (!seasonData || !seasonData.id) {
+    const seasonData: any = await seasonResponse.json();
+    console.log("Season data response from API:", seasonData);
+
+    if (Array.isArray(seasonData) && seasonData.length > 0) {
+      seasonId = seasonData[0].id;
+    } else if (seasonData && seasonData.id) {
+      seasonId = seasonData.id;
+    } else {
       throw new Error("No valid season data returned from the endpoint.");
     }
 
-    seasonId = seasonData.id;
     console.log(`Using season with id: ${seasonId}`);
+
   } catch (error) {
     console.error("Error fetching season information:", error);
     return null;
   }
+
 
   const playerStats = await db.collection("PlayerStats").findOne({
     playerId: player.id,
