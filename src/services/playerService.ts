@@ -11,14 +11,17 @@ interface SeasonResponse {
 
 export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
   const db = await connectToDatabase();
-
   const player = await db.collection("Player").findOne({ latestIGN: ignUsed });
+
   if (!player) {
     console.log(`Player not found for IGN: ${ignUsed}`);
     return null;
   }
 
   console.log("Found player:", player);
+
+  const playerId = player._id.toString();
+  console.log(`Resolved playerId: ${playerId}`);
 
   let seasonId: string;
   try {
@@ -50,21 +53,18 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
   }
 
   const playerStats = await db.collection("PlayerStats").findOne({
-    playerId: player.id,
+    playerId: playerId,
     seasonId: seasonId,
   });
 
   if (!playerStats) {
     console.error(`PlayerStats not found. Debug info:`);
-    console.error(`Queried playerId: ${player.id}`);
+    console.error(`Queried playerId: ${playerId}`);
     console.error(`Queried seasonId: ${seasonId}`);
 
-    const existingStats = await db
-      .collection("PlayerStats")
-      .find({
-        playerId: player.id,
-      })
-      .toArray();
+    const existingStats = await db.collection("PlayerStats").find({
+      playerId: playerId,
+    }).toArray();
     console.log(`Existing PlayerStats with playerId:`, existingStats);
 
     return null;
@@ -73,7 +73,7 @@ export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
   console.log("Player stats found:", playerStats);
 
   return {
-    id: player.id,
+    id: player._id,
     discordSnowflake: player.discordSnowflake,
     latestIGN: player.latestIGN,
     primaryMinecraftAccount: player.primaryMinecraftAccount,
