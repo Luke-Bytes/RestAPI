@@ -20,7 +20,6 @@ async function fetchPlayerCounts() {
     const url = `https://shotbow.net/serverList.json?t=${new Date().getTime()}`;
     const response = await axios.get(url);
     const data = response.data;
-    console.log('AJAX call result:', data);
 
     const dataWithTimestamp = { timestamp: new Date().toISOString(), ...data };
     const logRow = JSON.stringify(dataWithTimestamp) + "\n";
@@ -29,8 +28,6 @@ async function fetchPlayerCounts() {
     fs.appendFile(filePath, logRow, (err) => {
       if (err) {
         console.error('Error writing to file:', err);
-      } else {
-        console.log('Logged player counts:', logRow.trim());
       }
     });
   } catch (error) {
