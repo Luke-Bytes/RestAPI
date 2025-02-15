@@ -127,19 +127,29 @@
           const response = await fetch(`/api/playerCount?${params.toString()}`);
           const data = await response.json();
 
-          const labels = data.map((entry) =>
-            new Date(entry.timestamp).toLocaleString()
-          );
+          // Debug log: check what data is returned from the API
+          console.log("Data fetched:", data);
+
+          // Use the ISO timestamp directly for the x-axis labels.
+          // Chart.js will handle parsing these dates using your date adapter.
+          const labels = data.map((entry) => entry.timestamp);
           const counts = data.map((entry) => entry.all);
 
+          // Warn if no data is returned
+          if (data.length === 0) {
+            console.warn("No data returned from the API.");
+          }
+
+          // If there's an existing chart instance, destroy it to free up the canvas.
           if (playerCountChart) {
             playerCountChart.destroy();
           }
 
+          // Create a new chart instance.
           playerCountChart = new Chart(ctx, {
             type: "line",
             data: {
-              labels: labels,
+              labels: labels, // these are ISO strings (e.g., "2025-02-15T12:34:56.789Z")
               datasets: [
                 {
                   label: "Total Players",
@@ -156,7 +166,7 @@
             options: {
               scales: {
                 x: {
-                  type: "time",
+                  type: "time", // time scale uses the date adapter to parse timestamps
                   time: {
                     tooltipFormat: "ll HH:mm",
                     displayFormats: { hour: "MMM d, hA" },
@@ -167,7 +177,11 @@
                 },
                 y: {
                   beginAtZero: true,
-                  title: { display: true, text: "Player Count", color: "#e0e0e0" },
+                  title: {
+                    display: true,
+                    text: "Player Count",
+                    color: "#e0e0e0",
+                  },
                   ticks: { color: "#e0e0e0" },
                   grid: { color: "rgba(255, 255, 255, 0.1)" },
                 },
