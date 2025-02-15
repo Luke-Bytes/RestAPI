@@ -9,9 +9,29 @@ export const getPlayerCount = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { start, end } = req.query;
-  const startTime = start ? new Date(start as string) : new Date(0);
-  const endTime = end ? new Date(end as string) : new Date();
+  const { start, end, date } = req.query;
+  let startTime: Date;
+  let endTime: Date;
+
+  if (date) {
+    startTime = new Date(date as string);
+    startTime.setHours(0, 0, 0, 0);
+    endTime = new Date(date as string);
+    endTime.setHours(23, 59, 59, 999);
+  } else {
+    if (start) {
+      startTime = new Date(start as string);
+      startTime.setHours(0, 0, 0, 0);
+    } else {
+      startTime = new Date(0);
+    }
+    if (end) {
+      endTime = new Date(end as string);
+      endTime.setHours(23, 59, 59, 999);
+    } else {
+      endTime = new Date();
+    }
+  }
 
   const cacheKey = `playerCounts-${startTime.toISOString()}-${endTime.toISOString()}`;
   const cachedData = cache.get(cacheKey);
@@ -22,7 +42,7 @@ export const getPlayerCount = async (
   }
 
   try {
-    const logDir = path.join(process.cwd(), "logs", "playerCount");
+    const logDir = path.join(process.cwd(), "logs", "playerCounts");
 
     const logFiles: string[] = await glob(`${logDir}/*.log`);
 

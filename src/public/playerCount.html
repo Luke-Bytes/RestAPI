@@ -100,11 +100,11 @@
       <form id="timeRangeForm">
         <div>
           <label for="start">Start:</label>
-          <input type="datetime-local" id="start" name="start" />
+          <input type="date" id="start" name="start" />
         </div>
         <div>
           <label for="end">End:</label>
-          <input type="datetime-local" id="end" name="end" />
+          <input type="date" id="end" name="end" />
         </div>
         <div>
           <button type="submit">Load Data</button>
@@ -125,7 +125,7 @@
 
         try {
           const response = await fetch(
-            `/api/playerCounts?${params.toString()}`
+            `/api/playerCount?${params.toString()}`
           );
           const data = await response.json();
 
