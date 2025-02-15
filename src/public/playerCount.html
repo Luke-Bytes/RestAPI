@@ -211,11 +211,16 @@
             x: {
               type: "time",
               time: {
-                tooltipFormat: "ll HH:mm",
-                displayFormats: { hour: "MMM d, hA" }
+                tooltipFormat: "h:mm a",
+                unit: "minute",
+                stepSize: 30,
+                displayFormats: { minute: "h:mm a" }
+              },
+              ticks: {
+                source: "data", // Use your exact data timestamps for ticks
+                color: "#e0e0e0"
               },
               title: { display: true, text: "Time", color: "#e0e0e0" },
-              ticks: { color: "#e0e0e0" },
               grid: { color: "rgba(255, 255, 255, 0.1)" }
             },
             y: {
@@ -237,6 +242,7 @@
           }
         }
       });
+
     } catch (error) {
       console.error("Error loading player counts:", error);
     }
