@@ -107,7 +107,9 @@ async function populateSeasons() {
 
     const activeSeasonResponse = await fetch("/api/seasons?active=true");
     if (!activeSeasonResponse.ok) {
-      throw new Error(`Failed to fetch active season: ${activeSeasonResponse.status}`);
+      throw new Error(
+        `Failed to fetch active season: ${activeSeasonResponse.status}`
+      );
     }
     const activeSeason = await activeSeasonResponse.json();
 
@@ -125,5 +127,3 @@ async function populateSeasons() {
     console.error("Error fetching seasons:", error);
   }
 }
-
-

@@ -53,6 +53,10 @@ app.use(express.static(path.join(__dirname, "../src//public")));
 
 app.use("/api", routes);
 
+app.get("/playerCount", (req, res) => {
+  res.sendFile(path.join(__dirname, "../src/public/playerCount.html"));
+});
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../src/public/index.html"));
 });
