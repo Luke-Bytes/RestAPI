@@ -9,6 +9,7 @@ import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import sanitizeInput from "./middlewares/sanitizeInput";
 import * as path from "node:path";
+import { schedulePlayerCountFetch } from "./ajax/playerCount";
 
 dotenv.config();
 
@@ -57,5 +58,7 @@ app.get("/", (req, res) => {
 });
 
 app.use(errorHandler);
+
+schedulePlayerCountFetch();
 
 export default app;
