@@ -43,7 +43,7 @@
           margin-right: 5px;
           font-size: 1rem;
       }
-      input[type="datetime-local"],
+      input[type="date"],
       input[type="date"] {
           background-color: #1e1e1e;
           border: 1px solid #333;
@@ -93,11 +93,11 @@
   <form id="timeRangeForm">
     <div>
       <label for="start">Start:</label>
-      <input type="datetime-local" id="start" name="start" />
+      <input type="date" id="start" name="start" />
     </div>
     <div>
       <label for="end">End:</label>
-      <input type="datetime-local" id="end" name="end" />
+      <input type="date" id="end" name="end" />
     </div>
     <div>
       <button type="submit">Load Data</button>
@@ -163,10 +163,12 @@
 <script>
   const ctx = document.getElementById("playerCountChart").getContext("2d");
   let playerCountChart;
+
   function getSelectedDataPoints() {
     const checkboxes = document.querySelectorAll('input[name="datapoint"]:checked');
     return Array.from(checkboxes).map(checkbox => checkbox.value);
   }
+
   const colors = [
     { border: "rgba(25, 118, 210, 1)", background: "rgba(25, 118, 210, 0.2)" },
     { border: "rgba(220, 53, 69, 1)", background: "rgba(220, 53, 69, 0.2)" },
@@ -174,21 +176,27 @@
     { border: "rgba(255, 193, 7, 1)", background: "rgba(255, 193, 7, 0.2)" },
     { border: "rgba(108, 117, 125, 1)", background: "rgba(108, 117, 125, 0.2)" }
   ];
+
   async function loadData(start, end) {
     const params = new URLSearchParams();
     if (start) params.append("start", start);
     if (end) params.append("end", end);
+
     try {
       const response = await fetch(`/api/playerCount?${params.toString()}`);
       const data = await response.json();
       console.log("Data fetched:", data);
-      const labels = data.map(entry => entry.timestamp);
+
       const selectedDataPoints = getSelectedDataPoints();
       console.log("Selected Data Points:", selectedDataPoints);
+
       const datasets = selectedDataPoints.map((point, index) => {
         return {
           label: point,
-          data: data.map(entry => entry[point]),
+          data: data.map(entry => ({
+            x: entry.timestamp,
+            y: entry[point]
+          })),
           borderColor: colors[index % colors.length].border,
           backgroundColor: colors[index % colors.length].background,
           fill: true,
@@ -197,13 +205,23 @@
           pointBorderColor: colors[index % colors.length].border
         };
       });
+
+      let xMin, xMax;
+      if (start && end) {
+        xMin = new Date(start);
+        xMax = new Date(end);
+        xMax.setHours(23, 59, 59, 999);
+      } else if (data.length > 0) {
+        xMin = new Date(data[0].timestamp);
+        xMax = new Date(data[data.length - 1].timestamp);
+      }
+
       if (playerCountChart) {
         playerCountChart.destroy();
       }
       playerCountChart = new Chart(ctx, {
         type: "line",
         data: {
-          labels: labels,
           datasets: datasets
         },
         options: {
@@ -214,10 +232,14 @@
                 tooltipFormat: "h:mm a",
                 unit: "minute",
                 stepSize: 30,
-                displayFormats: { minute: "h:mm a" }
+                displayFormats: {
+                  minute: "h:mm a"
+                }
               },
+              min: xMin,
+              max: xMax,
               ticks: {
-                source: "data",
+                autoSkip: false,
                 color: "#e0e0e0"
               },
               title: { display: true, text: "Time", color: "#e0e0e0" },
@@ -247,23 +269,24 @@
       console.error("Error loading player counts:", error);
     }
   }
+
   document.getElementById("timeRangeForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const start = document.getElementById("start").value;
     const end = document.getElementById("end").value;
     loadData(start, end);
   });
-  const checkboxes = document.querySelectorAll('input[name="datapoint"]');
-  checkboxes.forEach(checkbox => {
+
+  document.querySelectorAll('input[name="datapoint"]').forEach(checkbox => {
     checkbox.addEventListener("change", () => {
       const start = document.getElementById("start").value;
       const end = document.getElementById("end").value;
       loadData(start, end);
     });
   });
+
   document.getElementById("untickAllButton").addEventListener("click", () => {
-    const allCheckboxes = document.querySelectorAll('input[name="datapoint"]');
-    allCheckboxes.forEach(checkbox => {
+    document.querySelectorAll('input[name="datapoint"]').forEach(checkbox => {
       checkbox.checked = false;
     });
     const start = document.getElementById("start").value;
@@ -272,5 +295,8 @@
   });
   loadData();
 </script>
+
+
+
 </body>
 </html>
