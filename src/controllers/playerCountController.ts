@@ -74,8 +74,14 @@ export const getPlayerCount = async (
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
 
-    cache.set(cacheKey, filteredData);
-    res.json(filteredData);
+    const truncatedData = filteredData.map((entry) => {
+      const date = new Date(entry.timestamp);
+      date.setMinutes(Math.floor(date.getMinutes() / 30) * 30, 0, 0);
+      return { ...entry, timestamp: date.toISOString() };
+    });
+
+    cache.set(cacheKey, truncatedData);
+    res.json(truncatedData);
   } catch (err) {
     console.error("Error fetching player counts:", err);
     res.status(500).json({

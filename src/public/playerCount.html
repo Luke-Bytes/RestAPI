@@ -1,302 +1,552 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Player Count Graph</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-  <style>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Player Count Graph</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
       body {
-          background-color: #121212;
-          color: #e0e0e0;
-          font-family: "Roboto", sans-serif;
-          margin: 0;
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-          min-height: 100vh;
+        background-color: #121212;
+        color: #e0e0e0;
+        font-family: "Roboto", sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
       }
       .container {
-          width: 90%;
-          max-width: 900px;
-          margin: 0 auto;
-          padding: 20px;
+        width: 90%;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
       }
       h1,
       h2 {
-          text-align: center;
+        text-align: center;
       }
       form {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: center;
-          gap: 15px;
-          margin-bottom: 30px;
-          align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 30px;
+        align-items: center;
       }
       form > div {
-          display: flex;
-          align-items: center;
+        display: flex;
+        align-items: center;
       }
       label {
-          margin-right: 5px;
-          font-size: 1rem;
+        margin-right: 5px;
+        font-size: 1rem;
       }
       input[type="date"],
       input[type="date"] {
-          background-color: #1e1e1e;
-          border: 1px solid #333;
-          border-radius: 4px;
-          padding: 8px;
-          color: #e0e0e0;
+        background-color: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 4px;
+        padding: 8px;
+        color: #e0e0e0;
       }
       button {
-          background-color: #1976d2;
-          border: none;
-          border-radius: 4px;
-          padding: 10px 20px;
-          font-size: 1rem;
-          color: #fff;
-          cursor: pointer;
-          transition: background-color 0.3s ease;
+        background-color: #1976d2;
+        border: none;
+        border-radius: 4px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        color: #fff;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
       }
       button:hover {
-          background-color: #1565c0;
+        background-color: #1565c0;
       }
       #dataPoints {
-          margin-bottom: 20px;
-          text-align: center;
+        margin-bottom: 20px;
+        text-align: center;
       }
       #dataPoints label {
-          margin-right: 15px;
-          display: inline-block;
-          margin-bottom: 5px;
+        margin-right: 15px;
+        display: inline-block;
+        margin-bottom: 5px;
       }
       #untickAllButton {
-          margin-top: 10px;
-          background-color: #dc3545;
+        margin-top: 10px;
+        background-color: #dc3545;
       }
       canvas {
-          background-color: #1e1e1e;
-          border: 1px solid #333;
-          border-radius: 4px;
-          display: block;
-          width: 100%;
-          height: auto;
+        background-color: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 4px;
+        display: block;
+        width: 100%;
+        height: auto;
       }
-  </style>
-</head>
-<body>
-<div class="container">
-  <h1>Player Count Graph</h1>
-  <form id="timeRangeForm">
-    <div>
-      <label for="start">Start:</label>
-      <input type="date" id="start" name="start" />
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Player Count Graph</h1>
+      <form id="timeRangeForm">
+        <div>
+          <label for="start">Start:</label>
+          <input type="date" id="start" name="start" />
+        </div>
+        <div>
+          <label for="end">End:</label>
+          <input type="date" id="end" name="end" />
+        </div>
+        <div>
+          <button type="submit">Load Data</button>
+        </div>
+      </form>
+      <div id="dataPoints">
+        <h2>Select Data Points:</h2>
+        <label
+          ><input type="checkbox" name="datapoint" value="all" checked />
+          All</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="all_us" checked /> All
+          US</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="all_eu" checked /> All
+          EU</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="annihilation"
+            checked
+          />
+          Annihilation</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="annihilation_annilobby"
+            checked
+          />
+          Annihilation Annilobby</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="annihilation_chill"
+            checked
+          />
+          Annihilation Chill</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="annihilation_dev"
+            checked
+          />
+          Annihilation Dev</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="annihilation_us"
+            checked
+          />
+          Annihilation US</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="assault" checked />
+          Assault</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="civwar" checked />
+          Civwar</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="craftybomber"
+            checked
+          />
+          Craftybomber</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="dbv" checked />
+          DBV</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="dbv_dev" checked />
+          DBV Dev</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="dbv_us" checked /> DBV
+          US</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="ddg" checked />
+          DDG</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="flappy" checked />
+          Flappy</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="gg" checked />
+          GG</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="gg_us" checked /> GG
+          US</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="ghostcraft" checked />
+          Ghostcraft</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="goldrush" checked />
+          Goldrush</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="hcfactions" checked />
+          HCFactions</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="hips" checked />
+          Hips</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="lightbikes" checked />
+          Lightbikes</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="lms" checked />
+          LMS</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="lobby" checked />
+          Lobby</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="lobby_lobby"
+            checked
+          />
+          Lobby Lobby</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="lobby_us" checked />
+          Lobby US</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="mama" checked />
+          Mama</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="minerproblems"
+            checked
+          />
+          Minerproblems</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="minerproblems_dev"
+            checked
+          />
+          Minerproblems Dev</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="minez" checked />
+          Minez</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="minez2" checked />
+          Minez2</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="minez_dev" checked />
+          Minez Dev</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="minez_minezlobby"
+            checked
+          />
+          Minez Minezlobby</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="minez_us" checked />
+          Minez US</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="mta" checked />
+          MTA</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="shotball" checked />
+          Shotball</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="slaughter" checked />
+          Slaughter</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="slaughter_dev"
+            checked
+          />
+          Slaughter Dev</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="slaughter_us"
+            checked
+          />
+          Slaughter US</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="smash" checked />
+          Smash</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="smash_us" checked />
+          Smash US</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="sweepers" checked />
+          Sweepers</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="vadact" checked />
+          Vadact</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="warband" checked />
+          Warband</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="wasted" checked />
+          Wasted</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="wasted_control"
+            checked
+          />
+          Wasted Control</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="wasted_gungame"
+            checked
+          />
+          Wasted Gungame</label
+        >
+        <label
+          ><input
+            type="checkbox"
+            name="datapoint"
+            value="wasted_sandbox"
+            checked
+          />
+          Wasted Sandbox</label
+        >
+        <label
+          ><input type="checkbox" name="datapoint" value="wir" checked />
+          Wir</label
+        >
+        <br />
+        <button id="untickAllButton" type="button">Untick All</button>
+      </div>
+      <canvas id="playerCountChart"></canvas>
     </div>
-    <div>
-      <label for="end">End:</label>
-      <input type="date" id="end" name="end" />
-    </div>
-    <div>
-      <button type="submit">Load Data</button>
-    </div>
-  </form>
-  <div id="dataPoints">
-    <h2>Select Data Points:</h2>
-    <label><input type="checkbox" name="datapoint" value="all" checked /> All</label>
-    <label><input type="checkbox" name="datapoint" value="all_us" checked /> All US</label>
-    <label><input type="checkbox" name="datapoint" value="all_eu" checked /> All EU</label>
-    <label><input type="checkbox" name="datapoint" value="annihilation" checked /> Annihilation</label>
-    <label><input type="checkbox" name="datapoint" value="annihilation_annilobby" checked /> Annihilation Annilobby</label>
-    <label><input type="checkbox" name="datapoint" value="annihilation_chill" checked /> Annihilation Chill</label>
-    <label><input type="checkbox" name="datapoint" value="annihilation_dev" checked /> Annihilation Dev</label>
-    <label><input type="checkbox" name="datapoint" value="annihilation_us" checked /> Annihilation US</label>
-    <label><input type="checkbox" name="datapoint" value="assault" checked /> Assault</label>
-    <label><input type="checkbox" name="datapoint" value="civwar" checked /> Civwar</label>
-    <label><input type="checkbox" name="datapoint" value="craftybomber" checked /> Craftybomber</label>
-    <label><input type="checkbox" name="datapoint" value="dbv" checked /> DBV</label>
-    <label><input type="checkbox" name="datapoint" value="dbv_dev" checked /> DBV Dev</label>
-    <label><input type="checkbox" name="datapoint" value="dbv_us" checked /> DBV US</label>
-    <label><input type="checkbox" name="datapoint" value="ddg" checked /> DDG</label>
-    <label><input type="checkbox" name="datapoint" value="flappy" checked /> Flappy</label>
-    <label><input type="checkbox" name="datapoint" value="gg" checked /> GG</label>
-    <label><input type="checkbox" name="datapoint" value="gg_us" checked /> GG US</label>
-    <label><input type="checkbox" name="datapoint" value="ghostcraft" checked /> Ghostcraft</label>
-    <label><input type="checkbox" name="datapoint" value="goldrush" checked /> Goldrush</label>
-    <label><input type="checkbox" name="datapoint" value="hcfactions" checked /> HCFactions</label>
-    <label><input type="checkbox" name="datapoint" value="hips" checked /> Hips</label>
-    <label><input type="checkbox" name="datapoint" value="lightbikes" checked /> Lightbikes</label>
-    <label><input type="checkbox" name="datapoint" value="lms" checked /> LMS</label>
-    <label><input type="checkbox" name="datapoint" value="lobby" checked /> Lobby</label>
-    <label><input type="checkbox" name="datapoint" value="lobby_lobby" checked /> Lobby Lobby</label>
-    <label><input type="checkbox" name="datapoint" value="lobby_us" checked /> Lobby US</label>
-    <label><input type="checkbox" name="datapoint" value="mama" checked /> Mama</label>
-    <label><input type="checkbox" name="datapoint" value="minerproblems" checked /> Minerproblems</label>
-    <label><input type="checkbox" name="datapoint" value="minerproblems_dev" checked /> Minerproblems Dev</label>
-    <label><input type="checkbox" name="datapoint" value="minez" checked /> Minez</label>
-    <label><input type="checkbox" name="datapoint" value="minez2" checked /> Minez2</label>
-    <label><input type="checkbox" name="datapoint" value="minez_dev" checked /> Minez Dev</label>
-    <label><input type="checkbox" name="datapoint" value="minez_minezlobby" checked /> Minez Minezlobby</label>
-    <label><input type="checkbox" name="datapoint" value="minez_us" checked /> Minez US</label>
-    <label><input type="checkbox" name="datapoint" value="mta" checked /> MTA</label>
-    <label><input type="checkbox" name="datapoint" value="shotball" checked /> Shotball</label>
-    <label><input type="checkbox" name="datapoint" value="slaughter" checked /> Slaughter</label>
-    <label><input type="checkbox" name="datapoint" value="slaughter_dev" checked /> Slaughter Dev</label>
-    <label><input type="checkbox" name="datapoint" value="slaughter_us" checked /> Slaughter US</label>
-    <label><input type="checkbox" name="datapoint" value="smash" checked /> Smash</label>
-    <label><input type="checkbox" name="datapoint" value="smash_us" checked /> Smash US</label>
-    <label><input type="checkbox" name="datapoint" value="sweepers" checked /> Sweepers</label>
-    <label><input type="checkbox" name="datapoint" value="vadact" checked /> Vadact</label>
-    <label><input type="checkbox" name="datapoint" value="warband" checked /> Warband</label>
-    <label><input type="checkbox" name="datapoint" value="wasted" checked /> Wasted</label>
-    <label><input type="checkbox" name="datapoint" value="wasted_control" checked /> Wasted Control</label>
-    <label><input type="checkbox" name="datapoint" value="wasted_gungame" checked /> Wasted Gungame</label>
-    <label><input type="checkbox" name="datapoint" value="wasted_sandbox" checked /> Wasted Sandbox</label>
-    <label><input type="checkbox" name="datapoint" value="wir" checked /> Wir</label>
-    <br />
-    <button id="untickAllButton" type="button">Untick All</button>
-  </div>
-  <canvas id="playerCountChart"></canvas>
-</div>
-<script>
-  const ctx = document.getElementById("playerCountChart").getContext("2d");
-  let playerCountChart;
+    <script>
+      const ctx = document.getElementById("playerCountChart").getContext("2d");
+      let playerCountChart;
 
-  function getSelectedDataPoints() {
-    const checkboxes = document.querySelectorAll('input[name="datapoint"]:checked');
-    return Array.from(checkboxes).map(checkbox => checkbox.value);
-  }
-
-  const colors = [
-    { border: "rgba(25, 118, 210, 1)", background: "rgba(25, 118, 210, 0.2)" },
-    { border: "rgba(220, 53, 69, 1)", background: "rgba(220, 53, 69, 0.2)" },
-    { border: "rgba(40, 167, 69, 1)", background: "rgba(40, 167, 69, 0.2)" },
-    { border: "rgba(255, 193, 7, 1)", background: "rgba(255, 193, 7, 0.2)" },
-    { border: "rgba(108, 117, 125, 1)", background: "rgba(108, 117, 125, 0.2)" }
-  ];
-
-  async function loadData(start, end) {
-    const params = new URLSearchParams();
-    if (start) params.append("start", start);
-    if (end) params.append("end", end);
-
-    try {
-      const response = await fetch(`/api/playerCount?${params.toString()}`);
-      const data = await response.json();
-      console.log("Data fetched:", data);
-
-      const selectedDataPoints = getSelectedDataPoints();
-      console.log("Selected Data Points:", selectedDataPoints);
-
-      const datasets = selectedDataPoints.map((point, index) => {
-        return {
-          label: point,
-          data: data.map(entry => ({
-            x: entry.timestamp,
-            y: entry[point]
-          })),
-          borderColor: colors[index % colors.length].border,
-          backgroundColor: colors[index % colors.length].background,
-          fill: true,
-          tension: 0.1,
-          pointBackgroundColor: "#fff",
-          pointBorderColor: colors[index % colors.length].border
-        };
-      });
-
-      let xMin, xMax;
-      if (start && end) {
-        xMin = new Date(start);
-        xMax = new Date(end);
-        xMax.setHours(23, 59, 59, 999);
-      } else if (data.length > 0) {
-        xMin = new Date(data[0].timestamp);
-        xMax = new Date(data[data.length - 1].timestamp);
+      function getSelectedDataPoints() {
+        const checkboxes = document.querySelectorAll(
+          'input[name="datapoint"]:checked'
+        );
+        return Array.from(checkboxes).map((checkbox) => checkbox.value);
       }
 
-      if (playerCountChart) {
-        playerCountChart.destroy();
-      }
-      playerCountChart = new Chart(ctx, {
-        type: "line",
-        data: {
-          datasets: datasets
+      const colors = [
+        {
+          border: "rgba(25, 118, 210, 1)",
+          background: "rgba(25, 118, 210, 0.2)",
         },
-        options: {
-          scales: {
-            x: {
-              type: "time",
-              time: {
-                tooltipFormat: "h:mm a",
-                unit: "minute",
-                stepSize: 30,
-                displayFormats: {
-                  minute: "h:mm a"
-                }
-              },
-              min: xMin,
-              max: xMax,
-              ticks: {
-                autoSkip: false,
-                color: "#e0e0e0"
-              },
-              title: { display: true, text: "Time", color: "#e0e0e0" },
-              grid: { color: "rgba(255, 255, 255, 0.1)" }
-            },
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: "Player Count", color: "#e0e0e0" },
-              ticks: { color: "#e0e0e0" },
-              grid: { color: "rgba(255, 255, 255, 0.1)" }
-            }
-          },
-          plugins: {
-            legend: { labels: { color: "#e0e0e0" } },
-            tooltip: {
-              callbacks: {
-                label: function (context) {
-                  return context.dataset.label + ": " + context.parsed.y;
-                }
-              }
-            }
+        {
+          border: "rgba(220, 53, 69, 1)",
+          background: "rgba(220, 53, 69, 0.2)",
+        },
+        {
+          border: "rgba(40, 167, 69, 1)",
+          background: "rgba(40, 167, 69, 0.2)",
+        },
+        {
+          border: "rgba(255, 193, 7, 1)",
+          background: "rgba(255, 193, 7, 0.2)",
+        },
+        {
+          border: "rgba(108, 117, 125, 1)",
+          background: "rgba(108, 117, 125, 0.2)",
+        },
+      ];
+
+      async function loadData(start, end) {
+        const params = new URLSearchParams();
+        if (start) params.append("start", start);
+        if (end) params.append("end", end);
+
+        try {
+          const response = await fetch(`/api/playerCount?${params.toString()}`);
+          const data = await response.json();
+          console.log("Data fetched:", data);
+
+          const selectedDataPoints = getSelectedDataPoints();
+          console.log("Selected Data Points:", selectedDataPoints);
+
+          const datasets = selectedDataPoints.map((point, index) => {
+            return {
+              label: point,
+              data: data.map((entry) => ({
+                x: entry.timestamp,
+                y: entry[point],
+              })),
+              borderColor: colors[index % colors.length].border,
+              backgroundColor: colors[index % colors.length].background,
+              fill: true,
+              tension: 0.1,
+              pointBackgroundColor: "#fff",
+              pointBorderColor: colors[index % colors.length].border,
+            };
+          });
+
+          let xMin, xMax;
+          if (start && end) {
+            xMin = new Date(start);
+            xMax = new Date(end);
+            xMax.setHours(23, 59, 59, 999);
+          } else if (data.length > 0) {
+            xMin = new Date(data[0].timestamp);
+            xMax = new Date(data[data.length - 1].timestamp);
           }
+
+          if (playerCountChart) {
+            playerCountChart.destroy();
+          }
+          playerCountChart = new Chart(ctx, {
+            type: "line",
+            data: {
+              datasets: datasets,
+            },
+            options: {
+              scales: {
+                x: {
+                  type: "time",
+                  time: {
+                    tooltipFormat: "h:mm a",
+                    unit: "minute",
+                    stepSize: 30,
+                    displayFormats: {
+                      minute: "h:mm a",
+                    },
+                  },
+                  min: xMin,
+                  max: xMax,
+                  ticks: {
+                    autoSkip: false,
+                    color: "#e0e0e0",
+                  },
+                  title: { display: true, text: "Time", color: "#e0e0e0" },
+                  grid: { color: "rgba(255, 255, 255, 0.1)" },
+                },
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: "Player Count",
+                    color: "#e0e0e0",
+                  },
+                  ticks: { color: "#e0e0e0" },
+                  grid: { color: "rgba(255, 255, 255, 0.1)" },
+                },
+              },
+              plugins: {
+                legend: { labels: { color: "#e0e0e0" } },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      return context.dataset.label + ": " + context.parsed.y;
+                    },
+                  },
+                },
+              },
+            },
+          });
+        } catch (error) {
+          console.error("Error loading player counts:", error);
         }
-      });
+      }
 
-    } catch (error) {
-      console.error("Error loading player counts:", error);
-    }
-  }
+      document
+        .getElementById("timeRangeForm")
+        .addEventListener("submit", (e) => {
+          e.preventDefault();
+          const start = document.getElementById("start").value;
+          const end = document.getElementById("end").value;
+          loadData(start, end);
+        });
 
-  document.getElementById("timeRangeForm").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const start = document.getElementById("start").value;
-    const end = document.getElementById("end").value;
-    loadData(start, end);
-  });
+      document
+        .querySelectorAll('input[name="datapoint"]')
+        .forEach((checkbox) => {
+          checkbox.addEventListener("change", () => {
+            const start = document.getElementById("start").value;
+            const end = document.getElementById("end").value;
+            loadData(start, end);
+          });
+        });
 
-  document.querySelectorAll('input[name="datapoint"]').forEach(checkbox => {
-    checkbox.addEventListener("change", () => {
-      const start = document.getElementById("start").value;
-      const end = document.getElementById("end").value;
-      loadData(start, end);
-    });
-  });
-
-  document.getElementById("untickAllButton").addEventListener("click", () => {
-    document.querySelectorAll('input[name="datapoint"]').forEach(checkbox => {
-      checkbox.checked = false;
-    });
-    const start = document.getElementById("start").value;
-    const end = document.getElementById("end").value;
-    loadData(start, end);
-  });
-  loadData();
-</script>
-
-
-
-</body>
+      document
+        .getElementById("untickAllButton")
+        .addEventListener("click", () => {
+          document
+            .querySelectorAll('input[name="datapoint"]')
+            .forEach((checkbox) => {
+              checkbox.checked = false;
+            });
+          const start = document.getElementById("start").value;
+          const end = document.getElementById("end").value;
+          loadData(start, end);
+        });
+      loadData();
+    </script>
+  </body>
 </html>
