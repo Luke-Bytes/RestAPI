@@ -110,10 +110,10 @@ function initEloChart() {
   eloChart = new Chart(ctx, {
     type: "line",
     data: {
-      labels: [],        // an array of ISO strings, e.g. ["2025-01-01", "2025-02-11", ...]
+      labels: [],
       datasets: [{
         label: "Elo Rating",
-        data: [],        // just an array of numbers, one per label
+        data: [],
         fill: false,
         tension: 0.1,
         borderWidth: 2,
@@ -124,83 +124,79 @@ function initEloChart() {
       maintainAspectRatio: false,
       scales: {
         x: {
-            type: "time",
-            distribution: "series",
-    time: {
-    unit: "day",
-      tooltipFormat: "MMM dd, yyyy",
-  },
-  title: {
-    display: true,
-      text: "Game Date",
-      color: "#e0e0e0"
-  },
-  ticks: {
-    color: "#e0e0e0",
-      autoSkip: false,
-      maxRotation: 45,
-      minRotation: 45
-  }
-},
-  y: {
-      title: {
-      display: true,
-        text: "Elo",
-        color: "#e0e0e0"
-    },
-    ticks: {
-      color: "#e0e0e0",
-        stepSize: 50
+          type: "category",
+          title: {
+            display: true,
+            text: "Game Date",
+            color: "#e0e0e0"
+          },
+          ticks: {
+            color: "#e0e0e0",
+            autoSkip: false,
+            maxRotation: 45,
+            minRotation: 45
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: "Elo",
+            color: "#e0e0e0"
+          },
+          ticks: {
+            color: "#e0e0e0",
+            stepSize: 50
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: { color: "#e0e0e0" }
+        },
+        tooltip: {
+          mode: "index",
+          intersect: false
+        }
+      }
     }
-  }
-},
-  plugins: {
-    legend: {
-      labels: { color: "#e0e0e0" }
-    },
-    tooltip: {
-      mode: "index",
-        intersect: false
-    }
-  }
+  });
 }
-});
-}
-
 
 function renderEloHistory(historyData) {
   if (!eloChart) return;
 
-  // 1) Update the data
+  // Build category labels
+  const labels = historyData.map(pt =>
+    new Date(pt.date).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short"
+    })
+  );
   const elos = historyData.map(pt => pt.elo);
-  eloChart.data.labels = historyData.map(pt => pt.date);
+
+  eloChart.data.labels = labels;
   eloChart.data.datasets[0].data = elos;
 
-  // 2) Determine your desired step and defaults
+  // Y-axis padding and fixed step
   const step = 50;
-  const defaultMin = 900;
-  const defaultMax = 1200;
+  const defaultMin = 800;
+  const defaultMax = 1400;
 
-  // 3) Figure out raw min/max from data (or use defaults if empty)
   const dataMin = elos.length ? Math.min(...elos) : defaultMin;
   const dataMax = elos.length ? Math.max(...elos) : defaultMax;
 
-  // 4) Expand beyond defaults if needed
   const rawMin = Math.min(defaultMin, dataMin);
   const rawMax = Math.max(defaultMax, dataMax);
 
-  // 5) Round to nearest multiple of `step`
   const roundedMin = Math.floor(rawMin / step) * step;
   const roundedMax = Math.ceil(rawMax / step) * step;
 
-  // 6) Explicitly set the axis bounds
   eloChart.options.scales.y.min = roundedMin;
   eloChart.options.scales.y.max = roundedMax;
-
-  // 7) Make sure ticks use your fixed interval
   eloChart.options.scales.y.ticks.stepSize = step;
 
   eloChart.update();
 }
+
 
 
