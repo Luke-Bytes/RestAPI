@@ -111,38 +111,44 @@ function initEloChart() {
     type: "line",
     data: {
       labels: [],
-      datasets: [
-        {
-          label: "Elo Rating",
-          data: [],
-          fill: false,
-          tension: 0.1,
-          borderWidth: 2,
-          pointRadius: 3,
-        },
-      ],
+      datasets: [{
+        label: "Elo Rating",
+        data: [],
+        fill: false,
+        tension: 0.1,
+        borderWidth: 2,
+        pointRadius: 3
+      }]
     },
     options: {
+      maintainAspectRatio: false,
       scales: {
         x: {
           type: "time",
           time: { unit: "day", tooltipFormat: "MMM DD, YYYY" },
           title: { display: true, text: "Game Date", color: "#e0e0e0" },
-          ticks: { color: "#e0e0e0" },
+          ticks: { color: "#e0e0e0" }
         },
         y: {
+
+          suggestedMin: 800,
+          suggestedMax: 1300,
+
           title: { display: true, text: "Elo", color: "#e0e0e0" },
-          ticks: { color: "#e0e0e0" },
-        },
+          ticks: {
+            color: "#e0e0e0",
+            stepSize: 50
+          }
+        }
       },
       plugins: {
         legend: { labels: { color: "#e0e0e0" } },
-        tooltip: { mode: "index", intersect: false },
-      },
-      maintainAspectRatio: false,
-    },
+        tooltip: { mode: "index", intersect: false }
+      }
+    }
   });
 }
+
 
 function renderEloHistory(historyData) {
   if (!eloChart) return;
