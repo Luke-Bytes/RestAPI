@@ -146,7 +146,23 @@ function initEloChart() {
 
 function renderEloHistory(historyData) {
   if (!eloChart) return;
-  eloChart.data.labels = historyData.map((pt) => pt.date);
-  eloChart.data.datasets[0].data = historyData.map((pt) => pt.elo);
+
+  const elos = historyData.map(pt => pt.elo);
+  let minElo = Math.min(...elos, 800); // default floor
+  let maxElo = Math.max(...elos, 1300); // default ceiling
+
+  // Add 5% padding
+  const padding = (maxElo - minElo) * 0.05;
+  minElo = Math.max(0, minElo - padding);
+  maxElo = maxElo + padding;
+
+  eloChart.data.labels = historyData.map(pt => pt.date);
+  eloChart.data.datasets[0].data = elos;
+
+  // Apply dynamic bounds
+  eloChart.options.scales.y.min = minElo;
+  eloChart.options.scales.y.max = maxElo;
+
   eloChart.update();
 }
+
