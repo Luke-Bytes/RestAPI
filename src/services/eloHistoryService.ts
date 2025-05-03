@@ -1,6 +1,6 @@
 import { Db } from "mongodb";
 import { connectToDatabase } from "../config/database";
-import { escapeRegex } from "utils/Utils";
+import { escapeRegex } from "../utils/Utils";
 
 interface EloPoint {
   createdAt: Date;
@@ -14,9 +14,9 @@ export async function fetchEloHistory(
   const db: Db = await connectToDatabase();
 
   // 1) Lookup player
-  const ignRegex = new RegExp(`^${escapeRegex(latestIGN)}$`, 'i');
+  const ignRegex = new RegExp(`^${escapeRegex(latestIGN)}$`, "i");
   const player = await db
-    .collection<{ _id: string }>('Player')
+    .collection<{ _id: string }>("Player")
     .findOne({ latestIGN: ignRegex });
 
   if (!player) {

@@ -6,5 +6,5 @@ export const getErrorMessage = (err: unknown): string => {
 };
 
 export function escapeRegex(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
