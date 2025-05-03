@@ -1,0 +1,54 @@
+import { Db } from "mongodb";
+import { connectToDatabase } from "../config/database";
+
+interface EloPoint {
+  createdAt: Date;
+  elo: number;
+}
+
+export async function fetchEloHistory(
+  latestIGN: string,
+  seasonNumber?: string
+): Promise<EloPoint[]> {
+  const db: Db = await connectToDatabase();
+
+  // 1) Lookup player
+  const player = await db
+    .collection("Player")
+    .findOne<{ _id: string }>({ latestIGN });
+  if (!player) {
+    throw new Error(`Player '${latestIGN}' not found`);
+  }
+
+  // 2) Determine season
+  let seasonFilter: { [key: string]: any };
+  if (seasonNumber) {
+    const season = await db
+      .collection("Season")
+      .findOne<{ _id: string; number: number }>({
+        number: parseInt(seasonNumber, 10),
+      });
+    if (!season) throw new Error(`Season ${seasonNumber} not found`);
+    seasonFilter = { seasonId: season._id };
+  } else {
+    // default to active season
+    const activeSeason = await db
+      .collection("Season")
+      .findOne<{ _id: string }>({ isActive: true });
+    if (!activeSeason) throw new Error("No active season found");
+    seasonFilter = { seasonId: activeSeason._id };
+  }
+
+  // 3) Fetch and sort history
+  const raw = await db
+    .collection("EloHistory")
+    .find<{ createdAt: Date; elo: number }>({
+      playerId: player._id,
+      ...seasonFilter,
+    })
+    .sort({ createdAt: 1 })
+    .toArray();
+
+  // 4) Return only the needed fields
+  return raw.map(({ createdAt, elo }) => ({ createdAt, elo }));
+}
