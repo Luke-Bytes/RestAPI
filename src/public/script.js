@@ -143,6 +143,9 @@ function initEloChart() {
             text: "Elo",
             color: "#e0e0e0"
           },
+
+          suggestedMin: 900,
+          suggestedMax: 1200,
           ticks: {
             color: "#e0e0e0",
             stepSize: 50
@@ -162,6 +165,7 @@ function initEloChart() {
   });
 }
 
+
 function renderEloHistory(historyData) {
   if (!eloChart) return;
 
@@ -179,8 +183,8 @@ function renderEloHistory(historyData) {
 
   // Y-axis padding and fixed step
   const step = 50;
-  const defaultMin = 800;
-  const defaultMax = 1400;
+  const defaultMin = 900;
+  const defaultMax = 1200;
 
   const dataMin = elos.length ? Math.min(...elos) : defaultMin;
   const dataMax = elos.length ? Math.max(...elos) : defaultMax;
