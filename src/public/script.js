@@ -110,10 +110,10 @@ function initEloChart() {
   eloChart = new Chart(ctx, {
     type: "line",
     data: {
-      labels: [],
+      labels: [],        // an array of ISO strings, e.g. ["2025-01-01", "2025-02-11", ...]
       datasets: [{
         label: "Elo Rating",
-        data: [],
+        data: [],        // just an array of numbers, one per label
         fill: false,
         tension: 0.1,
         borderWidth: 2,
@@ -124,26 +124,47 @@ function initEloChart() {
       maintainAspectRatio: false,
       scales: {
         x: {
-          type: "time",
-          time: { unit: "day", tooltipFormat: "MMM DD, YYYY" },
-          title: { display: true, text: "Game Date", color: "#e0e0e0" },
-          ticks: { color: "#e0e0e0" }
-        },
-        y: {
-
-          title: { display: true, text: "Elo", color: "#e0e0e0" },
-          ticks: {
-            color: "#e0e0e0",
-            stepSize: 50
-          }
-        }
-      },
-      plugins: {
-        legend: { labels: { color: "#e0e0e0" } },
-        tooltip: { mode: "index", intersect: false }
-      }
+            type: "time",
+            distribution: "series",
+    time: {
+    unit: "day",
+      tooltipFormat: "MMM dd, yyyy",
+  },
+  title: {
+    display: true,
+      text: "Game Date",
+      color: "#e0e0e0"
+  },
+  ticks: {
+    color: "#e0e0e0",
+      autoSkip: false,
+      maxRotation: 45,
+      minRotation: 45
+  }
+},
+  y: {
+      title: {
+      display: true,
+        text: "Elo",
+        color: "#e0e0e0"
+    },
+    ticks: {
+      color: "#e0e0e0",
+        stepSize: 50
     }
-  });
+  }
+},
+  plugins: {
+    legend: {
+      labels: { color: "#e0e0e0" }
+    },
+    tooltip: {
+      mode: "index",
+        intersect: false
+    }
+  }
+}
+});
 }
 
 
