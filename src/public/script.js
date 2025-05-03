@@ -131,9 +131,6 @@ function initEloChart() {
         },
         y: {
 
-          suggestedMin: 800,
-          suggestedMax: 1300,
-
           title: { display: true, text: "Elo", color: "#e0e0e0" },
           ticks: {
             color: "#e0e0e0",
@@ -153,22 +150,36 @@ function initEloChart() {
 function renderEloHistory(historyData) {
   if (!eloChart) return;
 
+  // 1) Update the data
   const elos = historyData.map(pt => pt.elo);
-  let minElo = Math.min(...elos, 800); // default floor
-  let maxElo = Math.max(...elos, 1300); // default ceiling
-
-  // Add 5% padding
-  const padding = (maxElo - minElo) * 0.05;
-  minElo = Math.max(0, minElo - padding);
-  maxElo = maxElo + padding;
-
   eloChart.data.labels = historyData.map(pt => pt.date);
   eloChart.data.datasets[0].data = elos;
 
-  // Apply dynamic bounds
-  eloChart.options.scales.y.min = minElo;
-  eloChart.options.scales.y.max = maxElo;
+  // 2) Determine your desired step and defaults
+  const step = 50;
+  const defaultMin = 900;
+  const defaultMax = 1200;
+
+  // 3) Figure out raw min/max from data (or use defaults if empty)
+  const dataMin = elos.length ? Math.min(...elos) : defaultMin;
+  const dataMax = elos.length ? Math.max(...elos) : defaultMax;
+
+  // 4) Expand beyond defaults if needed
+  const rawMin = Math.min(defaultMin, dataMin);
+  const rawMax = Math.max(defaultMax, dataMax);
+
+  // 5) Round to nearest multiple of `step`
+  const roundedMin = Math.floor(rawMin / step) * step;
+  const roundedMax = Math.ceil(rawMax / step) * step;
+
+  // 6) Explicitly set the axis bounds
+  eloChart.options.scales.y.min = roundedMin;
+  eloChart.options.scales.y.max = roundedMax;
+
+  // 7) Make sure ticks use your fixed interval
+  eloChart.options.scales.y.ticks.stepSize = step;
 
   eloChart.update();
 }
+
 
