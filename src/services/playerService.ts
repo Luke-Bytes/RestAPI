@@ -11,7 +11,9 @@ interface SeasonResponse {
 
 export const getPlayerByIGN = async (ignUsed: string, season?: string) => {
   const db = await connectToDatabase();
-  const player = await db.collection("Player").findOne({ latestIGN: ignUsed });
+  const player = await db.collection("Player").findOne({
+    latestIGN: new RegExp(`^${ignUsed}$`, "i"),
+  });
 
   if (!player) {
     console.error(`Player not found for IGN: ${ignUsed}`);

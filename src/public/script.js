@@ -111,14 +111,16 @@ function initEloChart() {
     type: "line",
     data: {
       labels: [],
-      datasets: [{
-        label: "Elo Rating",
-        data: [],
-        fill: false,
-        tension: 0.1,
-        borderWidth: 2,
-        pointRadius: 3
-      }]
+      datasets: [
+        {
+          label: "Elo Rating",
+          data: [],
+          fill: false,
+          tension: 0.1,
+          borderWidth: 2,
+          pointRadius: 3,
+        },
+      ],
     },
     options: {
       maintainAspectRatio: false,
@@ -128,55 +130,54 @@ function initEloChart() {
           title: {
             display: true,
             text: "Game Date",
-            color: "#e0e0e0"
+            color: "#e0e0e0",
           },
           ticks: {
             color: "#e0e0e0",
             autoSkip: false,
             maxRotation: 45,
-            minRotation: 45
-          }
+            minRotation: 45,
+          },
         },
         y: {
           title: {
             display: true,
             text: "Elo",
-            color: "#e0e0e0"
+            color: "#e0e0e0",
           },
 
           suggestedMin: 900,
           suggestedMax: 1200,
           ticks: {
             color: "#e0e0e0",
-            stepSize: 50
-          }
-        }
+            stepSize: 50,
+          },
+        },
       },
       plugins: {
         legend: {
-          labels: { color: "#e0e0e0" }
+          labels: { color: "#e0e0e0" },
         },
         tooltip: {
           mode: "index",
-          intersect: false
-        }
-      }
-    }
+          intersect: false,
+        },
+      },
+    },
   });
 }
-
 
 function renderEloHistory(historyData) {
   if (!eloChart) return;
 
   // Build category labels
-  const labels = historyData.map(pt =>
+  const labels = historyData.map((pt) =>
     new Date(pt.date).toLocaleDateString("en-GB", {
       day: "2-digit",
-      month: "short"
+      month: "short",
     })
   );
-  const elos = historyData.map(pt => pt.elo);
+  const elos = historyData.map((pt) => pt.elo);
 
   eloChart.data.labels = labels;
   eloChart.data.datasets[0].data = elos;
@@ -201,6 +202,3 @@ function renderEloHistory(historyData) {
 
   eloChart.update();
 }
-
-
-
