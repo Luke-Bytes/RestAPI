@@ -22,7 +22,12 @@ export const customQuery = async (
       projection
     );
 
-    console.log("Custom query results:", JSON.stringify(results, null, 2));
+    const resultsString = JSON.stringify(results, null, 2)
+      .split('\n')
+      .slice(0, 20)
+      .join('\n');
+
+    console.log("Custom query results:\n" + resultsString);
 
     res.json(results);
   } catch (err) {
