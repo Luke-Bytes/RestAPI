@@ -1,126 +1,153 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Current Season Player ELOs</title>
-    <link rel="stylesheet" href="/styles.css" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  </head>
-  <body>
-    <h1>Current Season Player ELOs</h1>
-    <div id="feedback"></div>
+<head>
+  <meta charset="UTF-8" />
+  <title>Current Season Player ELOs</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<h1>Current Season Player ELOs</h1>
+<div id="feedback"></div>
 
-    <div id="chartContainer">
-      <canvas id="histogramChart"></canvas>
-    </div>
+<div id="chartContainer" style="margin-top: 40px; height: 200px;">
+  <canvas id="scatterChart"></canvas>
+</div>
 
-    <script>
-      async function getActiveSeasonId() {
-        const res = await fetch('/api/seasons');
-        if (!res.ok) throw new Error('Failed to load seasons');
-        const seasons = await res.json();
-        const active = seasons.find(s => s.isActive);
-        if (!active) throw new Error('No active season');
-        return active._id ?? active.id;
-      }
+<script>
+  async function getActiveSeasonId() {
+    const res = await fetch('/api/seasons');
+    if (!res.ok) throw new Error('Failed to load seasons');
+    const seasons = await res.json();
+    const active = seasons.find(s => s.isActive);
+    if (!active) throw new Error('No active season');
+    return active._id ?? active.id;
+  }
 
-      async function fetchPlayerEloData(seasonId) {
-        const res = await fetch('/api/custom-query', {
-          method:'POST',
-          headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify({
-            collection: 'PlayerStats',
-            pipeline: [
-              { $match: { seasonId } },
-              { $lookup: {
-                  from: 'Player',
-                  localField: 'playerId',
-                  foreignField: '_id',
-                  as: 'player'
-                }},
-              { $unwind: '$player' },
-              { $project: { _id:0, latestIGN:'$player.latestIGN', elo:1 }}
-            ]
-          })
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(()=>null);
-          throw new Error(err?.message || res.statusText);
+  async function fetchPlayerEloData(seasonId) {
+    const res = await fetch('/api/custom-query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        collection: 'PlayerStats',
+        pipeline: [
+          { $match: { seasonId } },
+          { $lookup: {
+              from: 'Player',
+              localField: 'playerId',
+              foreignField: '_id',
+              as: 'player'
+            }},
+          { $unwind: '$player' },
+          { $project: { _id: 0, latestIGN: '$player.latestIGN', elo: 1 } }
+        ]
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.message || res.statusText);
+    }
+    return res.json();
+  }
+
+  function makeBins(elos, binWidth = 25) {
+    const min = Math.min(...elos);
+    const max = Math.max(...elos);
+    const start = Math.floor(min / binWidth) * binWidth;
+    const end = Math.ceil(max / binWidth) * binWidth;
+    const count = Math.ceil((end - start) / binWidth);
+
+    const labels = [];
+    const counts = Array(count).fill(0);
+    for (let i = 0; i < count; i++) {
+      labels.push(`${start + i*binWidth}–${start + (i+1)*binWidth}`);
+    }
+
+    elos.forEach(v => {
+      const idx = Math.min(count - 1, Math.floor((v - start) / binWidth));
+      counts[idx]++;
+    });
+
+    return { labels, counts };
+  }
+
+  async function renderCharts() {
+    try {
+      const seasonId = await getActiveSeasonId();
+      const raw      = await fetchPlayerEloData(seasonId);
+      const elos     = raw.map(d => d.elo);
+
+      const { labels, counts } = makeBins(elos, 25);
+      const histCanvas = document.getElementById('histogramChart');
+      if (!(histCanvas instanceof HTMLCanvasElement)) throw new Error('Histogram canvas not found');
+      const histCtx = histCanvas.getContext('2d');
+      if (!histCtx) throw new Error('Could not get 2D context for histogram');
+
+      new Chart(histCtx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Players per 25-ELO Range',
+            data: counts
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'ELO Range' } },
+            y: { beginAtZero: true, title: { display: true, text: '# Players' } }
+          },
+          plugins: { legend: { display: false } }
         }
-        return res.json();
-      }
+      });
 
-      function makeBins(elos, binWidth = 50) {
-        const min = Math.min(...elos);
-        const max = Math.max(...elos);
-        const start = Math.floor(min / binWidth) * binWidth;
-        const end   = Math.ceil(max / binWidth) * binWidth;
-        const count = Math.ceil((end - start) / binWidth);
+      const scatterCanvas = document.getElementById('scatterChart');
+      if (!(scatterCanvas instanceof HTMLCanvasElement)) throw new Error('Scatter canvas not found');
+      const scCtx = scatterCanvas.getContext('2d');
+      if (!scCtx) throw new Error('Could not get 2D context for scatter');
 
-        const labels = [];
-        const counts = Array(count).fill(0);
-        for (let i = 0; i < count; i++) {
-          labels.push(`${start + i*binWidth}–${start + (i+1)*binWidth}`);
-        }
+      const scatterData = raw.map(d => ({
+        x: d.elo,
+        y: 0,
+        ign: d.latestIGN
+      }));
 
-        elos.forEach(v => {
-          const idx = Math.min(count - 1, Math.floor((v - start) / binWidth));
-          counts[idx]++;
-        });
-
-        return { labels, counts };
-      }
-
-      async function renderCharts() {
-        try {
-          const seasonId = await getActiveSeasonId();
-          const raw      = await fetchPlayerEloData(seasonId);
-          const elos     = raw.map(d => d.elo);
-
-          const { labels, counts } = makeBins(elos, 50);
-          const histCtx = document.getElementById('histogramChart').getContext('2d');
-          new Chart(histCtx, {
-            type: 'bar',
-            data: { labels, datasets:[{ label:'Players per 50-ELO Range', data:counts }] },
-            options: {
-              responsive: true,
-              scales: {
-                x: { title:{ display:true, text:'ELO Range' } },
-                y: { beginAtZero:true, title:{ display:true, text:'# Players' } }
-              },
-              plugins: { legend:{ display:false } }
-            }
-          });
-
-          const scatterData = raw.map(d => ({ x: d.elo, y: 0, ign: d.latestIGN }));
-          const scCtx = document.getElementById('scatterChart').getContext('2d');
-          new Chart(scCtx, {
-            type: 'scatter',
-            data: { datasets:[{ label:'Player ELOs', data:scatterData, pointRadius:5 }] },
-            options: {
-              responsive: true,
-              scales: {
-                x: { type:'linear', title:{ display:true, text:'ELO Rating' } },
-                y: { display:false, min:-1, max:1 }
-              },
-              plugins: {
-                legend:{ display:false },
-                tooltip:{ callbacks:{
-                    label(ctx) {
-                      const r = ctx.raw;
-                      return `${r.ign}: ${r.x}`;
-                    }
-                  }}
+      new Chart(scCtx, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Player ELOs',
+            data: scatterData,
+            pointRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { type: 'linear', title: { display: true, text: 'ELO Rating' } },
+            y: { display: false, min: -1, max: 1 }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label(ctx) {
+                  const r = ctx.raw;
+                  return `${r.ign}: ${r.x}`;
+                }
               }
             }
-          });
-        } catch (err) {
-          document.getElementById('feedback').innerText = err.message;
-          console.error(err);
+          }
         }
-      }
+      });
+    } catch (err) {
+      document.getElementById('feedback').innerText = err.message;
+      console.error(err);
+    }
+  }
 
-      document.addEventListener('DOMContentLoaded', renderCharts);
-    </script>
-  </body>
+  document.addEventListener('DOMContentLoaded', renderCharts);
+</script>
+</body>
 </html>
