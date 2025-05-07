@@ -36,7 +36,12 @@ app.use(
     },
   })
 );
-app.use(mongoSanitize());
+app.use((req, res, next) => {
+  if (req.path === '/api/custom-query') {
+    return next();
+  }
+  return mongoSanitize()(req, res, next);
+});
 app.use(sanitizeInput);
 
 const apiLimiter = rateLimit({
