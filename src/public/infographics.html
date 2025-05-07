@@ -75,60 +75,91 @@
         return res.json();
       }
 
-      async function renderChart() {
+      async function renderDistribution() {
         try {
           const seasonId = await getActiveSeasonId();
-          const data = await fetchPlayerEloData(seasonId);
+          const raw    = await fetchPlayerEloData(seasonId);
+          const elos   = raw.map(d => d.elo);
 
-          const labels = data.map((d) => d.latestIGN);
-          const elos = data.map((d) => d.elo);
+          const binCount = Math.ceil(Math.sqrt(elos.length));
+          const minVal   = Math.min(...elos);
+          const maxVal   = Math.max(...elos);
+          const binSize  = (maxVal - minVal) / binCount;
 
-          const canvas = document.getElementById("eloChart");
-          if (!(canvas instanceof HTMLCanvasElement)) {
-            throw new Error("Canvas element not found");
-          }
-          const ctx = canvas.getContext("2d");
-          if (!ctx) throw new Error("Could not get 2D context");
+          const bins = Array.from({ length: binCount }, (_, i) => ({
+            x: minVal + binSize * (i + 0.5),
+            y: 0
+          }));
+          elos.forEach(v => {
+            let idx = Math.floor((v - minVal) / binSize);
+            if (idx === binCount) idx = binCount - 1;
+            bins[idx].y++;
+          });
 
+          const mean = elos.reduce((s, v) => s + v, 0) / elos.length;
+          const std  = Math.sqrt(elos.reduce((s, v) => s + (v - mean)**2, 0) / elos.length);
+          const curvePoints = 100;
+          const pdfScale = elos.length * binSize;
+          const normalData = Array.from({ length: curvePoints }, (_, i) => {
+            const x = minVal + (i / (curvePoints - 1)) * (maxVal - minVal);
+            const pdf = (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((x - mean) / std) ** 2);
+            return { x, y: pdf * pdfScale };
+          });
+
+          const scatterData = elos.map(v => ({ x: v, y: 0 }));
+
+          const canvas = document.getElementById('eloChart');
+          const ctx = canvas.getContext('2d');
           new Chart(ctx, {
-            type: "bar",
             data: {
-              labels,
               datasets: [
                 {
-                  label: "ELO",
-                  data: elos,
+                  type: 'bar',
+                  label: 'Histogram',
+                  data: bins,
+                  backgroundColor: 'rgba(0, 123, 255, 0.5)'
                 },
-              ],
+                {
+                  type: 'line',
+                  label: 'Normal Curve',
+                  data: normalData,
+                  borderColor: 'rgba(255, 99, 132, 1)',
+                  borderWidth: 2,
+                  fill: false,
+                  tension: 0.4
+                },
+                {
+                  type: 'scatter',
+                  label: 'Players',
+                  data: scatterData,
+                  pointBackgroundColor: 'yellow',
+                  pointRadius: 5
+                }
+              ]
             },
             options: {
-              responsive: true,
               scales: {
+                x: {
+                  type: 'linear',
+                  title: { display: true, text: 'ELO Rating' }
+                },
                 y: {
                   beginAtZero: true,
-                  title: { display: true, text: "ELO Rating" },
-                },
-                x: {
-                  title: { display: true, text: "Player IGN" },
-                },
+                  title: { display: true, text: 'Count' }
+                }
               },
               plugins: {
-                legend: { display: false },
-                tooltip: {
-                  callbacks: {
-                    label: (ctx) => ` ${ctx.parsed.y}`,
-                  },
-                },
-              },
-            },
+                legend: { position: 'top' }
+              }
+            }
           });
-        } catch (err) {
-          document.getElementById("feedback").innerText = err.message;
-          console.error(err);
+        } catch (e) {
+          document.getElementById('feedback').innerText = e.message;
+          console.error(e);
         }
       }
 
-      document.addEventListener("DOMContentLoaded", renderChart);
+      document.addEventListener('DOMContentLoaded', renderDistribution);
     </script>
   </body>
 </html>
