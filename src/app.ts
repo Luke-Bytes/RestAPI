@@ -57,6 +57,10 @@ app.get("/playerCount", (req, res) => {
   res.sendFile(path.join(__dirname, "../src/public/playerCount.html"));
 });
 
+app.get("/infographics", (req, res) => {
+  res.sendFile(path.join(__dirname, "../src/public/infographics.html"));
+});
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../src/public/index.html"));
 });
