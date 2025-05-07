@@ -1,114 +1,134 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Current Season Player ELOs</title>
-  <link rel="stylesheet" href="/styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-<h1>Current Season Player ELOs</h1>
-<div id="feedback"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Current Season Player ELOs</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <h1>Current Season Player ELOs</h1>
+    <div id="feedback"></div>
 
-<div id="chartContainer">
-  <canvas id="eloChart"></canvas>
-</div>
+    <div id="chartContainer">
+      <canvas id="eloChart"></canvas>
+    </div>
 
-<script>
-  async function getActiveSeasonId() {
-    const res = await fetch('/api/seasons');
-    if (!res.ok) throw new Error('Failed to load seasons');
-    const seasons = await res.json();
-    const active = seasons.find(s => s.isActive);
-    if (!active) throw new Error('No active season found');
-    return active._id;
-  }
-
-  async function fetchPlayerEloData(seasonId) {
-    const pipeline = [
-      { $match: { seasonId } },
-      {
-        $lookup: {
-          from: 'Player',
-          localField: 'playerId',
-          foreignField: '_id',
-          as: 'player'
-        }
-      },
-      { $unwind: '$player' },
-      {
-        $project: {
-          _id: 0,
-          latestIGN: '$player.latestIGN',
-          elo: 1
-        }
+    <script>
+      async function getActiveSeasonId() {
+        const res = await fetch("/api/seasons");
+        if (!res.ok) throw new Error("Failed to load seasons");
+        const seasons = await res.json();
+        const active = seasons.find((s) => s.isActive);
+        if (!active) throw new Error("No active season found");
+        return active._id;
       }
-    ];
 
-    const res = await fetch('/api/custom-query', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        collection: 'PlayerStats',
-        query: pipeline
-      })
-    });
-    if (!res.ok) throw new Error('Failed to load player stats');
-    return res.json();
-  }
-
-  async function renderChart() {
-    try {
-      const seasonId = await getActiveSeasonId();
-      const data = await fetchPlayerEloData(seasonId);
-
-      const labels = data.map(d => d.latestIGN);
-      const elos   = data.map(d => d.elo);
-
-      const canvas = document.getElementById('eloChart');
-      if (!(canvas instanceof HTMLCanvasElement)) {
-        throw new Error('Canvas element not found');
-      }
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Could not get 2D context');
-
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'ELO',
-            data: elos
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: 'ELO Rating' }
+      async function fetchPlayerEloData(seasonId) {
+        const pipeline = [
+          { $match: { seasonId } },
+          {
+            $lookup: {
+              from: "Player",
+              localField: "playerId",
+              foreignField: "_id",
+              as: "player",
             },
-            x: {
-              title: { display: true, text: 'Player IGN' }
-            }
           },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: ctx => ` ${ctx.parsed.y}`
-              }
-            }
-          }
-        }
-      });
-    } catch (err) {
-      document.getElementById('feedback').innerText = err.message;
-      console.error(err);
-    }
-  }
+          { $unwind: "$player" },
+          {
+            $project: {
+              _id: 0,
+              latestIGN: "$player.latestIGN",
+              elo: 1,
+            },
+          },
+        ];
 
-  document.addEventListener('DOMContentLoaded', renderChart);
-</script>
-</body>
+        const res = await fetch("/api/custom-query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            collection: "PlayerStats",
+            pipeline: [
+              { $match: { seasonId } },
+              {
+                $lookup: {
+                  from: "Player",
+                  localField: "playerId",
+                  foreignField: "_id",
+                  as: "player",
+                },
+              },
+              { $unwind: "$player" },
+              {
+                $project: {
+                  _id: 0,
+                  latestIGN: "$player.latestIGN",
+                  elo: 1,
+                },
+              },
+            ],
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to load player stats");
+        return res.json();
+      }
+
+      async function renderChart() {
+        try {
+          const seasonId = await getActiveSeasonId();
+          const data = await fetchPlayerEloData(seasonId);
+
+          const labels = data.map((d) => d.latestIGN);
+          const elos = data.map((d) => d.elo);
+
+          const canvas = document.getElementById("eloChart");
+          if (!(canvas instanceof HTMLCanvasElement)) {
+            throw new Error("Canvas element not found");
+          }
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Could not get 2D context");
+
+          new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "ELO",
+                  data: elos,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: "ELO Rating" },
+                },
+                x: {
+                  title: { display: true, text: "Player IGN" },
+                },
+              },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) => ` ${ctx.parsed.y}`,
+                  },
+                },
+              },
+            },
+          });
+        } catch (err) {
+          document.getElementById("feedback").innerText = err.message;
+          console.error(err);
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", renderChart);
+    </script>
+  </body>
 </html>

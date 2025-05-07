@@ -9,9 +9,7 @@ export const runCustomQuery = async (
   const coll = db.collection(collectionName);
 
   if (Array.isArray(queryOrPipeline)) {
-    return coll
-      .aggregate(queryOrPipeline, { maxTimeMS: 5000 })
-      .toArray();
+    return coll.aggregate(queryOrPipeline, { maxTimeMS: 5000 }).toArray();
   } else {
     return coll
       .find(queryOrPipeline, { projection })
