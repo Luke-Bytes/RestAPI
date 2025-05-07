@@ -11,155 +11,116 @@
     <div id="feedback"></div>
 
     <div id="chartContainer">
-      <canvas id="eloChart"></canvas>
+      <canvas id="histogramChart"></canvas>
     </div>
 
     <script>
       async function getActiveSeasonId() {
-        const res = await fetch("/api/seasons");
-        if (!res.ok) throw new Error("Failed to load seasons");
+        const res = await fetch('/api/seasons');
+        if (!res.ok) throw new Error('Failed to load seasons');
         const seasons = await res.json();
-        const active = seasons.find((s) => s.isActive);
-        if (!active) throw new Error("No active season found");
-        return active._id;
+        const active = seasons.find(s => s.isActive);
+        if (!active) throw new Error('No active season');
+        return active._id ?? active.id;
       }
 
       async function fetchPlayerEloData(seasonId) {
-        const pipeline = [
-          { $match: { seasonId } },
-          {
-            $lookup: {
-              from: "Player",
-              localField: "playerId",
-              foreignField: "_id",
-              as: "player",
-            },
-          },
-          { $unwind: "$player" },
-          {
-            $project: {
-              _id: 0,
-              latestIGN: "$player.latestIGN",
-              elo: 1,
-            },
-          },
-        ];
-
-        const res = await fetch("/api/custom-query", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/api/custom-query', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
           body: JSON.stringify({
-            collection: "PlayerStats",
+            collection: 'PlayerStats',
             pipeline: [
               { $match: { seasonId } },
-              {
-                $lookup: {
-                  from: "Player",
-                  localField: "playerId",
-                  foreignField: "_id",
-                  as: "player",
-                },
-              },
-              { $unwind: "$player" },
-              {
-                $project: {
-                  _id: 0,
-                  latestIGN: "$player.latestIGN",
-                  elo: 1,
-                },
-              },
-            ],
-          }),
+              { $lookup: {
+                  from: 'Player',
+                  localField: 'playerId',
+                  foreignField: '_id',
+                  as: 'player'
+                }},
+              { $unwind: '$player' },
+              { $project: { _id:0, latestIGN:'$player.latestIGN', elo:1 }}
+            ]
+          })
         });
-        if (!res.ok) throw new Error("Failed to load player stats");
+        if (!res.ok) {
+          const err = await res.json().catch(()=>null);
+          throw new Error(err?.message || res.statusText);
+        }
         return res.json();
       }
 
-      async function renderDistribution() {
+      function makeBins(elos, binWidth = 50) {
+        const min = Math.min(...elos);
+        const max = Math.max(...elos);
+        const start = Math.floor(min / binWidth) * binWidth;
+        const end   = Math.ceil(max / binWidth) * binWidth;
+        const count = Math.ceil((end - start) / binWidth);
+
+        const labels = [];
+        const counts = Array(count).fill(0);
+        for (let i = 0; i < count; i++) {
+          labels.push(`${start + i*binWidth}–${start + (i+1)*binWidth}`);
+        }
+
+        elos.forEach(v => {
+          const idx = Math.min(count - 1, Math.floor((v - start) / binWidth));
+          counts[idx]++;
+        });
+
+        return { labels, counts };
+      }
+
+      async function renderCharts() {
         try {
           const seasonId = await getActiveSeasonId();
-          const raw    = await fetchPlayerEloData(seasonId);
-          const elos   = raw.map(d => d.elo);
+          const raw      = await fetchPlayerEloData(seasonId);
+          const elos     = raw.map(d => d.elo);
 
-          const binCount = Math.ceil(Math.sqrt(elos.length));
-          const minVal   = Math.min(...elos);
-          const maxVal   = Math.max(...elos);
-          const binSize  = (maxVal - minVal) / binCount;
-
-          const bins = Array.from({ length: binCount }, (_, i) => ({
-            x: minVal + binSize * (i + 0.5),
-            y: 0
-          }));
-          elos.forEach(v => {
-            let idx = Math.floor((v - minVal) / binSize);
-            if (idx === binCount) idx = binCount - 1;
-            bins[idx].y++;
-          });
-
-          const mean = elos.reduce((s, v) => s + v, 0) / elos.length;
-          const std  = Math.sqrt(elos.reduce((s, v) => s + (v - mean)**2, 0) / elos.length);
-          const curvePoints = 100;
-          const pdfScale = elos.length * binSize;
-          const normalData = Array.from({ length: curvePoints }, (_, i) => {
-            const x = minVal + (i / (curvePoints - 1)) * (maxVal - minVal);
-            const pdf = (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((x - mean) / std) ** 2);
-            return { x, y: pdf * pdfScale };
-          });
-
-          const scatterData = elos.map(v => ({ x: v, y: 0 }));
-
-          const canvas = document.getElementById('eloChart');
-          const ctx = canvas.getContext('2d');
-          new Chart(ctx, {
-            data: {
-              datasets: [
-                {
-                  type: 'bar',
-                  label: 'Histogram',
-                  data: bins,
-                  backgroundColor: 'rgba(0, 123, 255, 0.5)'
-                },
-                {
-                  type: 'line',
-                  label: 'Normal Curve',
-                  data: normalData,
-                  borderColor: 'rgba(255, 99, 132, 1)',
-                  borderWidth: 2,
-                  fill: false,
-                  tension: 0.4
-                },
-                {
-                  type: 'scatter',
-                  label: 'Players',
-                  data: scatterData,
-                  pointBackgroundColor: 'yellow',
-                  pointRadius: 5
-                }
-              ]
-            },
+          const { labels, counts } = makeBins(elos, 50);
+          const histCtx = document.getElementById('histogramChart').getContext('2d');
+          new Chart(histCtx, {
+            type: 'bar',
+            data: { labels, datasets:[{ label:'Players per 50-ELO Range', data:counts }] },
             options: {
+              responsive: true,
               scales: {
-                x: {
-                  type: 'linear',
-                  title: { display: true, text: 'ELO Rating' }
-                },
-                y: {
-                  beginAtZero: true,
-                  title: { display: true, text: 'Count' }
-                }
+                x: { title:{ display:true, text:'ELO Range' } },
+                y: { beginAtZero:true, title:{ display:true, text:'# Players' } }
+              },
+              plugins: { legend:{ display:false } }
+            }
+          });
+
+          const scatterData = raw.map(d => ({ x: d.elo, y: 0, ign: d.latestIGN }));
+          const scCtx = document.getElementById('scatterChart').getContext('2d');
+          new Chart(scCtx, {
+            type: 'scatter',
+            data: { datasets:[{ label:'Player ELOs', data:scatterData, pointRadius:5 }] },
+            options: {
+              responsive: true,
+              scales: {
+                x: { type:'linear', title:{ display:true, text:'ELO Rating' } },
+                y: { display:false, min:-1, max:1 }
               },
               plugins: {
-                legend: { position: 'top' }
+                legend:{ display:false },
+                tooltip:{ callbacks:{
+                    label(ctx) {
+                      const r = ctx.raw;
+                      return `${r.ign}: ${r.x}`;
+                    }
+                  }}
               }
             }
           });
-        } catch (e) {
-          document.getElementById('feedback').innerText = e.message;
-          console.error(e);
+        } catch (err) {
+          document.getElementById('feedback').innerText = err.message;
+          console.error(err);
         }
       }
 
-      document.addEventListener('DOMContentLoaded', renderDistribution);
+      document.addEventListener('DOMContentLoaded', renderCharts);
     </script>
   </body>
 </html>
