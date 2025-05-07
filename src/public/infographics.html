@@ -10,11 +10,11 @@
 <h1>Current Season Player ELOs</h1>
 <div id="feedback"></div>
 
-<div class="chartContainer" style="max-width: 1200px; height: 400px;">
+<div class="chartContainer" style="max-width: 1800px; width: 1200px; height: 400px;">
   <canvas id="histogramChart"></canvas>
 </div>
 
-<div class="chartContainer" style="max-width: 1200px; height: 200px; margin-top: 40px;">
+<div class="chartContainer" style="max-width: 1800px; width: 1200px; margin-top: 40px;">
   <canvas id="scatterChart"></canvas>
 </div>
 
@@ -101,7 +101,7 @@
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            x: { title: { display: true, text: 'ELO Range' } },
+            x: { title: { display: true, text: 'Elo' } },
             y: { beginAtZero: true, title: { display: true, text: '# Players' } }
           },
           plugins: { legend: { display: false } }
