@@ -2,6 +2,12 @@ import sanitizeHtml from "sanitize-html";
 import { Request, Response, NextFunction } from "express";
 
 const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
+
+  if (req.path === "/api/custom-query") {
+    next();
+    return;
+  }
+
   if (req.body) {
     for (const key in req.body) {
       if (typeof req.body[key] === "string") {
