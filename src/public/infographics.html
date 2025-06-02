@@ -36,7 +36,7 @@
       body: JSON.stringify({
         collection: 'PlayerStats',
         pipeline: [
-          { $match: { seasonId } },
+          { $match: { seasonId, $or: [{ wins: { $gt: 0 } }, { losses: { $gt: 0 } }] } },
           { $lookup: {
               from: 'Player',
               localField: 'playerId',
@@ -47,6 +47,7 @@
           { $project: { _id: 0, latestIGN: '$player.latestIGN', elo: 1 } }
         ]
       })
+
     });
     if (!res.ok) {
       const err = await res.json().catch(() => null);
