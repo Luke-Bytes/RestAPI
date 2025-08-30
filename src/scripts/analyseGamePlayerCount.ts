@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { glob } from "glob";
 import { connectToDatabase } from "../config/database";
+import dotenv from "dotenv";
 
 type AnyRec = Record<string, any>;
 
@@ -39,17 +40,20 @@ function toMs(min: number): number {
 }
 
 function extractTotalPlayers(entry: AnyRec): number | null {
-  // Prefer explicit total if present
   const maybe = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : null);
   if (entry == null || typeof entry !== "object") return null;
-  if (maybe(entry.all) != null) return maybe(entry.all);
-  if (maybe(entry.count) != null) return maybe(entry.count);
+  const direct = maybe(entry.annihilation);
+  if (direct != null) return direct;
+  const us = maybe(entry.annihilation_us);
+  const eu = maybe(entry.annihilation_eu);
+  if (us != null || eu != null) return (us ?? 0) + (eu ?? 0);
   const counts = entry.counts;
   if (counts && typeof counts === "object") {
-    if (maybe(counts.all) != null) return maybe(counts.all);
-    const eu = maybe(counts.all_eu);
-    const us = maybe(counts.all_us);
-    if (eu != null && us != null) return eu + us;
+    const d = maybe(counts.annihilation);
+    if (d != null) return d;
+    const cus = maybe(counts.annihilation_us);
+    const ceu = maybe(counts.annihilation_eu);
+    if (cus != null || ceu != null) return (cus ?? 0) + (ceu ?? 0);
   }
   return null;
 }
@@ -101,6 +105,7 @@ function peak(nums: Array<{ ts: Date; total: number }>, start: Date): { value: n
 }
 
 async function main() {
+  dotenv.config();
   const opts = parseArgs(process.argv);
   const db = await connectToDatabase();
 
@@ -172,7 +177,6 @@ async function main() {
     });
   }
 
-  // Overall summary
   const validDeltas = results.map((r) => r.deltaAbs).filter((v): v is number => typeof v === "number");
   const overall = {
     games: results.length,
@@ -187,4 +191,3 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
-
