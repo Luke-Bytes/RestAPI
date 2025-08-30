@@ -386,60 +386,73 @@
       <canvas id="playerCountChart"></canvas>
     </div>
     <script>
-      const API_URL="/api/playerCount";
+      const API_URL="/api/playerCount"; // fixed
       let chart,lastPayload;
       const qs=id=>document.getElementById(id);
       const qsa=(sel,root=document)=>Array.from(root.querySelectorAll(sel));
       const toDateInput=iso=>{const d=new Date(iso);const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`};
+      const seriesColor=i=>`hsl(${(i*53)%360} 70% 60%)`;
 
       async function loadCounts({start,end}={}) {
         const params=new URLSearchParams();
-        if(start) params.set("start",start); // YYYY-MM-DD from <input type="date">
+        if(start) params.set("start",start);
         if(end) params.set("end",end);
-        const q=params.toString();
-        const url=q?`${API_URL}?${q}`:API_URL;
+        const url=params.size?`${API_URL}?${params}`:API_URL;
         const res=await fetch(url);
-        if(!res.ok){
-          const text=await res.text().catch(()=> "");
-          throw new Error(`HTTP ${res.status}${text?`: ${text}`:""}`);
-        }
-        return res.json();
+        if(!res.ok){throw new Error(`HTTP ${res.status}: ${await res.text().catch(()=> "")}`)}
+        const json=await res.json();
+        console.debug("payload.meta",json?.meta);
+        console.debug("sample datum",json?.data?.[0]);
+        return json;
       }
 
-      function getSelectedKeys(){
-        return new Set(qsa('input[name="datapoint"]:checked').map(i=>i.value));
-      }
+      function getSelectedKeys(){return new Set(qsa('input[name="datapoint"]:checked').map(i=>i.value));}
 
       function detectSeriesKeys(data){
-        const sample=data?.[0]||{};
-        return Object.keys(sample).filter(k=>k!=="timestamp" && typeof sample[k]==="number");
+        const s=data?.[0]||{};
+        // support nested {counts:{...}} OR flat metrics
+        const nested=typeof s.counts==="object" && s.counts!==null ? Object.keys(s.counts) : [];
+        const flat=Object.keys(s).filter(k=>k!=="timestamp" && typeof s[k]==="number");
+        const keys=[...new Set([...nested,...flat])];
+        console.debug("detected keys",keys);
+        return keys;
+      }
+
+      function valueFor(d,k){
+        if(d.counts && typeof d.counts==="object" && k in d.counts) return Number(d.counts[k]);
+        return Number(d[k]);
       }
 
       function buildDatasets(payload, selected){
         const {meta,data}=payload;
         const keys=detectSeriesKeys(data);
-        if(keys.length===0 && data?.length && typeof data[0].count==="number"){
-          return [{label:"Players",data:data.map(d=>({x:d.timestamp,y:+d.count})),borderWidth:1,pointRadius:meta.aggregated?2:0}];
+        // fallback: single "count"
+        if(keys.length===0 && data?.length && Number.isFinite(Number(data[0]?.count))){
+          return [{label:"Players",data:data.map(d=>({x:new Date(d.timestamp),y:+d.count})),borderWidth:1,pointRadius:meta.aggregated?2:0,borderColor:seriesColor(0)}];
         }
-        const wanted=keys.filter(k=>selected.has(k));
-        return wanted.map(k=>({
+        let wanted=keys.filter(k=>selected.size===0 || selected.has(k));
+        if(wanted.length===0) { // no checkbox match → plot everything found
+          console.warn("No checkbox matched available series. Falling back to all keys.",{available:keys});
+          wanted=keys;
+        }
+        return wanted.map((k,i)=>({
           label:k,
-          data:data.map(d=>({x:d.timestamp,y:+(d[k]??0)})),
+          data:data.map(d=>({x:new Date(d.timestamp),y:valueFor(d,k) || 0})),
           borderWidth:1,
-          pointRadius:meta.aggregated?2:0
+          pointRadius:meta.aggregated?2:0,
+          borderColor:seriesColor(i)
         }));
       }
 
       function renderChart(payload){
         lastPayload=payload;
-        const {meta,data}=payload;
+        const {meta}=payload;
         const canvas=qs("playerCountChart");
-        if(!canvas) throw new Error("Canvas #playerCountChart not found");
         const ctx=canvas.getContext("2d");
         if(chart) chart.destroy();
 
-        const selected=getSelectedKeys();
-        const datasets=buildDatasets(payload,selected);
+        const datasets=buildDatasets(payload,getSelectedKeys());
+        if(!datasets.length){ console.warn("No datasets to render."); }
 
         chart=new Chart(ctx,{
           type:"line",
@@ -464,14 +477,11 @@
         if(!qs("end").value) qs("end").value=toDateInput(meta.end);
       }
 
-      function refreshFromSelections(){
-        if(!lastPayload) return;
-        renderChart(lastPayload);
-      }
+      function refreshFromSelections(){ if(!lastPayload) return; renderChart(lastPayload); }
 
       async function init(){
         try{
-          const payload=await loadCounts(); // server defaults to last month raw
+          const payload=await loadCounts();
           renderChart(payload);
         }catch(e){
           console.error("Error loading player counts:",e);
@@ -479,7 +489,6 @@
         }
       }
 
-      // Use the correct IDs
       qs("timeRangeForm")?.addEventListener("submit",async(e)=>{
         e.preventDefault();
         const start=qs("start").value;
@@ -498,11 +507,10 @@
         refreshFromSelections();
       });
 
-      qsa('input[name="datapoint"]').forEach(i=>{
-        i.addEventListener("change",refreshFromSelections);
-      });
+      qsa('input[name="datapoint"]').forEach(i=>i.addEventListener("change",refreshFromSelections));
 
       init();
     </script>
+
   </body>
 </html>

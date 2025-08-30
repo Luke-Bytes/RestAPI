@@ -9,13 +9,25 @@ const MAX_RAW_DAYS = 31;
 
 const extractMetrics = (e: any): Record<string, number> => {
   const out: Record<string, number> = {};
+
   for (const [k, v] of Object.entries(e)) {
-    if (k !== "timestamp" && typeof v === "number" && Number.isFinite(v)) out[k] = Number(v);
+    if (k === "timestamp" || k === "counts") continue;
+    const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+    if (Number.isFinite(n)) out[k] = n;
   }
-  if (Object.keys(out).length === 0 && typeof e.count === "number") out.count = Number(e.count);
+
+  if (e && typeof e.counts === "object" && e.counts !== null) {
+    for (const [k, v] of Object.entries(e.counts)) {
+      const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+      if (Number.isFinite(n)) out[k] = n;
+    }
+  }
+  if (Object.keys(out).length === 0 && e?.count != null) {
+    const n = Number(e.count);
+    if (Number.isFinite(n)) out.count = n;
+  }
   return out;
 };
-
 export const getPlayerCount = async (req: Request, res: Response): Promise<void> => {
   const { start, end, date } = req.query;
   let startTime: Date;
