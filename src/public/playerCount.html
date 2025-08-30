@@ -394,10 +394,15 @@
 
       async function loadCounts({start,end}={}) {
         const params=new URLSearchParams();
-        if(start) params.set("start",start); // YYYY-MM-DD
+        if(start) params.set("start",start); // YYYY-MM-DD from <input type="date">
         if(end) params.set("end",end);
-        const res=await fetch(`${API_URL}?${params.toString()}`);
-        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const q=params.toString();
+        const url=q?`${API_URL}?${q}`:API_URL;
+        const res=await fetch(url);
+        if(!res.ok){
+          const text=await res.text().catch(()=> "");
+          throw new Error(`HTTP ${res.status}${text?`: ${text}`:""}`);
+        }
         return res.json();
       }
 
@@ -413,7 +418,6 @@
       function buildDatasets(payload, selected){
         const {meta,data}=payload;
         const keys=detectSeriesKeys(data);
-
         if(keys.length===0 && data?.length && typeof data[0].count==="number"){
           return [{label:"Players",data:data.map(d=>({x:d.timestamp,y:+d.count})),borderWidth:1,pointRadius:meta.aggregated?2:0}];
         }
@@ -429,7 +433,9 @@
       function renderChart(payload){
         lastPayload=payload;
         const {meta,data}=payload;
-        const ctx=qs("playerCountChart").getContext("2d");
+        const canvas=qs("playerCountChart");
+        if(!canvas) throw new Error("Canvas #playerCountChart not found");
+        const ctx=canvas.getContext("2d");
         if(chart) chart.destroy();
 
         const selected=getSelectedKeys();
@@ -473,6 +479,7 @@
         }
       }
 
+      // Use the correct IDs
       qs("timeRangeForm")?.addEventListener("submit",async(e)=>{
         e.preventDefault();
         const start=qs("start").value;
@@ -481,7 +488,7 @@
           const payload=await loadCounts({start,end});
           renderChart(payload);
         }catch(err){
-          console.error("Error loading player counts:",err);
+          console.error("Error loading player counts for range:",err);
           alert("Failed to load for selected range.");
         }
       });
@@ -497,7 +504,5 @@
 
       init();
     </script>
-
-
   </body>
 </html>
