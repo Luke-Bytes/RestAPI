@@ -7,84 +7,59 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
-      body {
-        background-color: #121212;
-        color: #e0e0e0;
-        font-family: "Roboto", sans-serif;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-      }
-      .container {
-        width: 90%;
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 20px;
-      }
-      h1,
-      h2 {
-        text-align: center;
-      }
-      form {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 15px;
-        margin-bottom: 30px;
-        align-items: center;
-      }
-      form > div {
-        display: flex;
-        align-items: center;
-      }
-      label {
-        margin-right: 5px;
-        font-size: 1rem;
-      }
-      input[type="date"],
-      input[type="date"] {
-        background-color: #1e1e1e;
-        border: 1px solid #333;
-        border-radius: 4px;
-        padding: 8px;
-        color: #e0e0e0;
-      }
-      button {
-        background-color: #1976d2;
-        border: none;
-        border-radius: 4px;
-        padding: 10px 20px;
-        font-size: 1rem;
-        color: #fff;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-      }
-      button:hover {
-        background-color: #1565c0;
-      }
-      #dataPoints {
-        margin-bottom: 20px;
-        text-align: center;
-      }
-      #dataPoints label {
-        margin-right: 15px;
-        display: inline-block;
-        margin-bottom: 5px;
-      }
-      #untickAllButton {
-        margin-top: 10px;
-        background-color: #dc3545;
-      }
-      canvas {
-        background-color: #1e1e1e;
-        border: 1px solid #333;
-        border-radius: 4px;
-        display: block;
-        width: 100%;
-        height: auto;
-      }
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: "Roboto", sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .container {
+            width: 90%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2 { text-align: center; }
+        form {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 15px;
+            margin-bottom: 30px; align-items: center;
+        }
+        form > div { display: flex; align-items: center; }
+        label { margin-right: 5px; font-size: 1rem; }
+        input[type="date"] {
+            background-color: #1e1e1e; border: 1px solid #333; border-radius: 4px;
+            padding: 8px; color: #e0e0e0;
+        }
+        button {
+            background-color: #1976d2; border: none; border-radius: 4px;
+            padding: 10px 20px; font-size: 1rem; color: #fff; cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover { background-color: #1565c0; }
+        #dataPoints { margin-bottom: 20px; text-align: center; }
+        #dataPoints label { margin-right: 15px; display: inline-block; margin-bottom: 5px; }
+        #untickAllButton { margin-top: 10px; background-color: #dc3545; }
+
+        .chart-wrap {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            height: 420px;
+            margin: 0 auto 24px;
+        }
+
+        canvas {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
     </style>
   </head>
   <body>
@@ -382,7 +357,7 @@
         >
         <br />
         <button id="untickAllButton" type="button">Untick All</button>
-      </div>
+        <div class="chart-wrap">
       <canvas id="playerCountChart"></canvas>
     </div>
     <script>
@@ -430,7 +405,7 @@
       function buildDatasets(payload, selected){
         const {meta,data}=payload;
         const keys=unionSeriesKeys(data);
-        // fallback: single "count"
+
         if(keys.length===0 && data?.length && Number.isFinite(Number(data[0]?.count))){
           const pts=data.map(d=>({x:+new Date(d.timestamp),y:Number(d.count)})).filter(p=>Number.isFinite(p.y));
           return [{label:"Players",data:pts,borderWidth:2,pointRadius:meta.aggregated?2:0,borderColor:color(0),tension:0.1}];
@@ -452,17 +427,17 @@
         if(chart) chart.destroy();
 
         const datasets=buildDatasets(payload,getSelectedKeys());
-        console.debug("datasets",datasets.map(d=>({label:d.label,len:d.data.length})));
 
         chart=new Chart(ctx,{
           type:"line",
           data:{datasets},
           options:{
+            responsive:true,
+            maintainAspectRatio:false, // canvas fills .chart-wrap (fixed height)
             parsing:false,
             animation:false,
             normalized:true,
             spanGaps:true,
-            maintainAspectRatio:false,
             plugins:{
               legend:{display:true},
               decimation:{enabled:true,algorithm:"lttb",samples:1500}
@@ -470,10 +445,8 @@
             scales:{
               x:{
                 type:"time",
-                // lock visible domain to server-provided range to avoid 1-hour zooms
                 min:+new Date(meta.start),
                 max:+new Date(meta.end),
-                time:{}, // let Chart.js choose best unit
                 ticks:{autoSkip:true,maxRotation:0}
               },
               y:{beginAtZero:true}
