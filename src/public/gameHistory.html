@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game History</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/header.js" defer></script>
+    <style>
+      .container { width: 90%; max-width: 1200px; }
+      .controls { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+      select { padding: 10px; background: #2b2b2b; color: #e0e0e0; border: 1px solid #555; border-radius: 5px; }
+      .panel { background: #2b2b2b; padding: 16px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+      .summary { margin-bottom: 12px; color: #ccc; }
+      .list { max-height: 70vh; overflow: auto; padding-right: 6px; }
+      details { background: #242424; border: 1px solid #3a3a3a; border-radius: 6px; margin: 8px 0; }
+      summary { cursor: pointer; padding: 10px 12px; font-weight: 600; color: #e8e8e8; }
+      .kv { padding: 0 12px 12px; }
+      .muted { color: #aaa; }
+      .spaced { margin-top: 12px; }
+      pre { white-space: pre-wrap; word-break: break-word; }
+      table.kv-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      table.kv-table th, table.kv-table td { border: 1px solid #3a3a3a; padding: 6px 8px; vertical-align: top; }
+      table.kv-table th { text-align: left; width: 220px; background: #2f2f2f; color: #e8e8e8; }
+      table.kv-table tr:nth-child(odd) td { background: #262626; }
+      details.inner { background: transparent; border: none; }
+      summary.inner { padding: 0; color: #9ecbff; }
+      .part { padding: 8px 12px 12px; }
+      .part .headline { display:flex; gap:10px; align-items:center; color:#ddd; margin: 6px 0 10px; }
+      .part .badge { background:#3b82f6; color:#fff; border-radius:999px; padding:2px 8px; font-size:12px; }
+      table.part-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      table.part-table th, table.part-table td { border: 1px solid #3a3a3a; padding: 6px 8px; }
+      table.part-table th { background:#2f2f2f; text-align:left; color:#e8e8e8; }
+      table.part-table tr:nth-child(odd) td { background:#262626; }
+      .mini { font-size: 12px; color:#aaa; }
+      .team-section { margin-top: 10px; border: 1px solid #3a3a3a; border-radius: 6px; overflow: hidden; }
+      .team-header { display:flex; justify-content: space-between; align-items:center; padding: 8px 10px; font-weight: 600; color: #fff; }
+      .team-header .count { font-size: 12px; opacity: 0.9; }
+      .team-table-wrap { padding: 8px 10px 12px; background: #242424; }
+      .delta-pos { color: #10b981; font-weight: 600; }
+      .delta-neg { color: #ef4444; font-weight: 600; }
+      .delta-zero { color: #cbd5e1; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div id="site-header"></div>
+    <div class="container">
+      <h1>Game History</h1>
+      <div id="feedback"></div>
+      <div class="controls">
+        <label for="seasonSelect" class="muted">Season</label>
+        <select id="seasonSelect"></select>
+        <label for="mapSelect" class="muted">Map</label>
+        <select id="mapSelect">
+          <option value="__ALL__">All maps</option>
+        </select>
+        <button id="refreshBtn">Load</button>
+        <span id="meta" class="muted"></span>
+      </div>
+
+      <div class="panel">
+        <div id="summary" class="summary"></div>
+        <div id="games" class="list"></div>
+      </div>
+    </div>
+
+    <script>
+      const feedbackEl = document.getElementById('feedback');
+      const seasonSelect = document.getElementById('seasonSelect');
+      const mapSelect = document.getElementById('mapSelect');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const gamesEl = document.getElementById('games');
+      const summaryEl = document.getElementById('summary');
+      const metaEl = document.getElementById('meta');
+      let ALL_GAMES = [];
+      const PARTICIPATION_CACHE = new Map();
+
+      function fmtDate(v){
+        try { const d = new Date(v); if (!isNaN(d)) return d.toLocaleString(); } catch(_) {}
+        return null;
+      }
+
+      function getMapName(g){
+        // Direct fields
+        const direct = g?.map || g?.mapName || g?.arena;
+        if (typeof direct === 'string' && direct) return direct;
+        const s = g?.settings;
+        if (!s) return null;
+        // Common nested shapes
+        if (typeof s === 'object') {
+          if (typeof s.map === 'string' && s.map) return s.map;
+          if (typeof s.mapName === 'string' && s.mapName) return s.mapName;
+          if (s.map && typeof s.map === 'object' && typeof s.map.text === 'string') return s.map.text;
+          if (Array.isArray(s)) {
+            const cand = s.find(it => (it?.key === 'map' || it?.name === 'map' || it?.id === 'map'));
+            if (cand) {
+              if (typeof cand.text === 'string' && cand.text) return cand.text;
+              if (typeof cand.value === 'string' && cand.value) return cand.value;
+            }
+          }
+          // If settings has a nested array like settings.options
+          for (const k of Object.keys(s)){
+            const v = s[k];
+            if (Array.isArray(v)){
+              const cand = v.find(it => (it?.key === 'map' || it?.name === 'map' || it?.id === 'map'));
+              if (cand){
+                if (typeof cand.text === 'string' && cand.text) return cand.text;
+                if (typeof cand.value === 'string' && cand.value) return cand.value;
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      function summarizeGame(g, idx){
+        // Determine a date/time
+        const candidates = ['createdAt','date','startTime','timestamp','endedAt'];
+        let dateVal = null;
+        for (const k of candidates){ if (g && g[k]) { const d = new Date(g[k]); if (!isNaN(d)) { dateVal = d; break; } } }
+        const dayName = dateVal ? dateVal.toLocaleDateString('en-GB', { weekday: 'long' }) : null;
+        const time = dateVal ? dateVal.toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' }) : null;
+        const date = dateVal ? dateVal.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : null;
+        const playerCnt = Array.isArray(g?.participantsIGNs) ? g.participantsIGNs.length : (Array.isArray(g?.participantIGNs) ? g.participantIGNs.length : 0);
+        const mapName = getMapName(g);
+        let titleBase = (dayName && time && date) ? `${dayName} ${time} ${date}` : `Game ${idx+1}`;
+        if (mapName) titleBase += ` - ${mapName}`;
+        const title = `${titleBase} - ${playerCnt} player${playerCnt!==1?'s':''}`;
+        return { title };
+      }
+
+      function valuePreview(v){
+        if (v === null) return 'null';
+        if (typeof v === 'undefined') return 'undefined';
+        if (typeof v === 'string') return v;
+        if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+        if (Array.isArray(v)) return `Array(${v.length})`;
+        return 'Object';
+      }
+
+      function renderKeyValueTable(obj){
+        const table = document.createElement('table');
+        table.className = 'kv-table';
+        const keys = Object.keys(obj || {}).sort((a,b) => a.localeCompare(b));
+        for (const k of keys){
+          const tr = document.createElement('tr');
+          const th = document.createElement('th'); th.textContent = k;
+          const td = document.createElement('td');
+          const val = obj[k];
+          if (val !== null && typeof val === 'object'){
+            const det = document.createElement('details');
+            det.className = 'inner';
+            const sum = document.createElement('summary'); sum.className = 'inner'; sum.textContent = valuePreview(val);
+            const pre = document.createElement('pre'); pre.textContent = JSON.stringify(val, null, 2);
+            det.appendChild(sum); det.appendChild(pre); td.appendChild(det);
+          } else {
+            td.textContent = valuePreview(val);
+          }
+          tr.appendChild(th); tr.appendChild(td);
+          table.appendChild(tr);
+        }
+        return table;
+      }
+
+      function renderGames(items){
+        gamesEl.innerHTML = '';
+        if (!items || !items.length){
+          summaryEl.textContent = 'No games found for this season.';
+          return;
+        }
+        summaryEl.textContent = `${items.length} game${items.length!==1?'s':''} loaded`;
+        const ordered = items.slice().reverse();
+        ordered.forEach((g, idx) => {
+          const { title } = summarizeGame(g, idx);
+          const det = document.createElement('details');
+          const sum = document.createElement('summary');
+          sum.textContent = title;
+          const body = document.createElement('div');
+          body.className = 'kv';
+          body.appendChild(renderKeyValueTable(g));
+
+          // Participation Section (lazy-load)
+          const partDetails = document.createElement('details');
+          partDetails.className = 'inner';
+          const partSummary = document.createElement('summary');
+          partSummary.className = 'inner';
+          partSummary.textContent = 'Participation';
+          const partWrap = document.createElement('div');
+          partWrap.className = 'part';
+          const partContent = document.createElement('div');
+          partContent.textContent = 'Loading...';
+          partWrap.appendChild(partContent);
+          partDetails.appendChild(partSummary);
+          partDetails.appendChild(partWrap);
+          body.appendChild(partDetails);
+
+          partDetails.addEventListener('toggle', async () => {
+            if (!partDetails.open) return;
+            const id = g?._id;
+            if (!id || typeof id !== 'string') { partContent.textContent = 'Invalid game id'; return; }
+            if (PARTICIPATION_CACHE.has(id)) {
+              const cached = PARTICIPATION_CACHE.get(id);
+              partContent.innerHTML = '';
+              partContent.appendChild(renderParticipation(cached.items, cached.changes));
+              return;
+            }
+            try {
+              partContent.textContent = 'Loading...';
+              const res = await fetch(`/api/gameParticipation/${encodeURIComponent(id)}`);
+              if (!res.ok) throw new Error('Failed to load participation');
+              const items = await res.json();
+              // Fetch elo changes for this game
+              let changes = {};
+              try { changes = await fetchEloChanges(id); } catch(_) {}
+              PARTICIPATION_CACHE.set(id, { items: Array.isArray(items) ? items : [], changes });
+              partContent.innerHTML = '';
+              partContent.appendChild(renderParticipation(PARTICIPATION_CACHE.get(id).items, changes));
+            } catch(e){
+              partContent.textContent = e?.message || String(e);
+            }
+          });
+
+          det.appendChild(sum);
+          det.appendChild(body);
+          gamesEl.appendChild(det);
+        });
+      }
+
+      function pickTeamKey(items){
+        // Per schema, team is the correct field
+        return 'team';
+      }
+
+      function extractIGN(e){
+        // Per schema, ignUsed is the correct field
+        return e.ignUsed || 'Unknown';
+      }
+
+      async function fetchEloChanges(gameId){
+        const body = {
+          collection: 'EloHistory',
+          pipeline: [
+            { $match: { gameId } },
+            { $lookup: {
+                from: 'EloHistory',
+                let: { pid: '$playerId', sid: '$seasonId', ts: '$createdAt' },
+                pipeline: [
+                  { $match: { $expr: { $and: [
+                    { $eq: [ '$playerId', '$$pid' ] },
+                    { $eq: [ '$seasonId', '$$sid' ] },
+                    { $lt: [ '$createdAt', '$$ts' ] }
+                  ] } } },
+                  { $sort: { createdAt: -1 } },
+                  { $limit: 1 }
+                ],
+                as: 'prev'
+            } },
+            { $project: {
+                playerId: 1,
+                elo: 1,
+                prevElo: { $ifNull: [ { $arrayElemAt: [ '$prev.elo', 0 ] }, 1000 ] },
+                eloChange: { $subtract: [ '$elo', { $ifNull: [ { $arrayElemAt: [ '$prev.elo', 0 ] }, 1000 ] } ] }
+            } }
+          ]
+        };
+        const res = await fetch('/api/custom-query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error('Failed to load elo changes');
+        const rows = await res.json();
+        const map = {};
+        for (const r of rows){
+          if (r && r.playerId) map[r.playerId] = { before: r.prevElo, after: r.elo, change: r.eloChange };
+        }
+        return map;
+      }
+
+      function renderParticipation(items, changes){
+        const wrap = document.createElement('div');
+        if (!items || !items.length){ wrap.textContent = 'No participation records.'; return wrap; }
+
+        const teamKey = pickTeamKey(items);
+        // Summary headline
+        const headline = document.createElement('div');
+        headline.className = 'headline';
+        const total = document.createElement('span'); total.className = 'badge'; total.textContent = `${items.length} players`;
+        headline.appendChild(total);
+        const counts = new Map();
+        let mvpCount = 0;
+        let captainCount = 0;
+        for (const e of items){
+          const t = (e[teamKey] ?? 'Unknown'); counts.set(t, (counts.get(t)||0)+1);
+          if (e.mvp) mvpCount++;
+          if (e.captain) captainCount++;
+        }
+        const parts = Array.from(counts.entries()).map(([k,v]) => `${k}: ${v}`).join(' | ');
+        const teamEl = document.createElement('span'); teamEl.className = 'mini'; teamEl.textContent = parts + ` | Captains: ${captainCount} | MVPs: ${mvpCount}`;
+        headline.appendChild(teamEl);
+        wrap.appendChild(headline);
+
+        // Group by team and color-code
+        const groups = new Map();
+        for (const e of items){
+          const t = String(e[teamKey] ?? 'Unknown');
+          if (!groups.has(t)) groups.set(t, []);
+          groups.get(t).push(e);
+        }
+
+        function canonicalTeamName(t){ return String(t || 'Unknown'); }
+        function teamKeyForColor(t){ return canonicalTeamName(t).toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9]/g,''); }
+        function teamColor(t){
+          const key = teamKeyForColor(t);
+          const map = {
+            RED: '#ef4444',
+            BLUE: '#3b82f6',
+            GREEN: '#10b981',
+            YELLOW: '#eab308',
+            UNKNOWN: '#4b5563',
+          };
+          // prefix match for things like "Team Red"
+          for (const k of Object.keys(map)){
+            if (key.startsWith(k)) return map[k];
+          }
+          return map.UNKNOWN;
+        }
+
+        const orderPref = ['RED','BLUE','GREEN','YELLOW','UNKNOWN'];
+        const sortedTeams = Array.from(groups.keys()).sort((a,b) => {
+          const ak = teamKeyForColor(a); const bk = teamKeyForColor(b);
+          const ai = orderPref.indexOf(ak); const bi = orderPref.indexOf(bk);
+          if (ai !== -1 && bi !== -1 && ai !== bi) return ai - bi;
+          if (ai !== -1) return -1; if (bi !== -1) return 1;
+          return canonicalTeamName(a).localeCompare(canonicalTeamName(b));
+        });
+
+        for (const teamName of sortedTeams){
+          const list = groups.get(teamName) || [];
+          const section = document.createElement('div'); section.className = 'team-section';
+          const header = document.createElement('div'); header.className = 'team-header';
+          header.style.background = teamColor(teamName);
+          header.innerHTML = `<span>${canonicalTeamName(teamName)}</span><span class="count">${list.length}</span>`;
+          section.appendChild(header);
+
+          const wrapTable = document.createElement('div'); wrapTable.className = 'team-table-wrap';
+          const table = document.createElement('table'); table.className = 'part-table';
+          const thead = document.createElement('thead'); const trh = document.createElement('tr');
+          { const th = document.createElement('th'); th.textContent = 'IGN'; trh.appendChild(th); }
+          { const th = document.createElement('th'); th.textContent = 'Captain'; trh.appendChild(th); }
+          { const th = document.createElement('th'); th.textContent = 'MVP'; trh.appendChild(th); }
+          { const th = document.createElement('th'); th.textContent = 'Before Elo'; trh.appendChild(th); }
+          { const th = document.createElement('th'); th.textContent = 'Elo Change'; trh.appendChild(th); }
+          { const th = document.createElement('th'); th.textContent = 'After Elo'; trh.appendChild(th); }
+          thead.appendChild(trh); table.appendChild(thead);
+          const tbody = document.createElement('tbody');
+          const sorted = list.slice().sort((a,b) => String(extractIGN(a)).localeCompare(String(extractIGN(b))));
+          for (const e of sorted){
+            const tr = document.createElement('tr');
+            { const td = document.createElement('td'); td.textContent = String(extractIGN(e)); tr.appendChild(td); }
+            { const td = document.createElement('td'); td.textContent = e.captain ? 'Yes' : ''; tr.appendChild(td); }
+            { const td = document.createElement('td'); td.textContent = e.mvp ? 'Yes' : ''; tr.appendChild(td); }
+            { const td = document.createElement('td');
+              const info = changes ? changes[e.playerId] : null;
+              td.textContent = (info && typeof info.before === 'number') ? String(info.before) : '-';
+              tr.appendChild(td);
+            }
+            { const td = document.createElement('td');
+              const info = changes ? changes[e.playerId] : null;
+              const delta = info ? info.change : null;
+              if (typeof delta === 'number') {
+                const sign = delta > 0 ? '+' : (delta < 0 ? '' : '');
+                td.textContent = `${sign}${delta}`;
+                td.className = delta > 0 ? 'delta-pos' : (delta < 0 ? 'delta-neg' : 'delta-zero');
+              } else {
+                td.textContent = '—';
+                td.className = 'delta-zero';
+              }
+              tr.appendChild(td);
+            }
+            { const td = document.createElement('td');
+              const info = changes ? changes[e.playerId] : null;
+              td.textContent = (info && typeof info.after === 'number') ? String(info.after) : '—';
+              tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+          }
+          table.appendChild(tbody);
+          wrapTable.appendChild(table);
+          section.appendChild(wrapTable);
+          // Team average (Before)
+          const avgBefore = (() => {
+            let sum = 0; let n = 0;
+            for (const e of list){ const info = changes ? changes[e.playerId] : null; if (info && typeof info.before === 'number') { sum += info.before; n++; } }
+            if (n === 0) return null;
+            return Math.round(sum / n);
+          })();
+          const avgEl = document.createElement('div');
+          avgEl.className = 'mini';
+          avgEl.textContent = `Team Average Elo (Before): ${avgBefore != null ? avgBefore : '—'}`;
+          section.appendChild(avgEl);
+          wrap.appendChild(section);
+        }
+
+        // Raw toggle
+        const raw = document.createElement('details'); raw.className = 'inner';
+        const rawSum = document.createElement('summary'); rawSum.className = 'inner'; rawSum.textContent = 'View raw data';
+        const pre = document.createElement('pre'); pre.textContent = JSON.stringify(items, null, 2);
+        raw.appendChild(rawSum); raw.appendChild(pre);
+        wrap.appendChild(raw);
+        return wrap;
+      }
+
+      function uniqueMaps(items){
+        const set = new Set();
+        for (const g of items){
+          const m = getMapName(g);
+          if (m && typeof m === 'string') set.add(m);
+        }
+        return Array.from(set).sort((a,b) => a.localeCompare(b));
+      }
+
+      async function loadSeasons(){
+        // Fetch all seasons and active to set default
+        const [allRes, activeRes] = await Promise.all([
+          fetch('/api/seasons'),
+          fetch('/api/seasons?active=true')
+        ]);
+        if (!allRes.ok) throw new Error('Failed to fetch seasons');
+        const all = await allRes.json();
+        let active = null;
+        if (activeRes.ok) { try { active = await activeRes.json(); } catch(_) {} }
+
+        // Sort by number desc if available
+        all.sort((a,b) => (b.number||0) - (a.number||0));
+        seasonSelect.innerHTML = '';
+        for (const s of all){
+          const opt = document.createElement('option');
+          opt.value = s.number;
+          opt.textContent = `Season ${s.number}` + (s.isActive ? ' (active)' : '');
+          if (active && s.number === active.number) opt.selected = true;
+          seasonSelect.appendChild(opt);
+        }
+        if (!seasonSelect.value && all.length) seasonSelect.value = all[0].number;
+      }
+
+      function applyFilters(){
+        const selected = mapSelect.value;
+        const filtered = selected && selected !== '__ALL__'
+          ? ALL_GAMES.filter(g => getMapName(g) === selected)
+          : ALL_GAMES.slice();
+        renderGames(filtered);
+      }
+
+      async function loadGames(){
+        feedbackEl.textContent = '';
+        gamesEl.innerHTML = '';
+        summaryEl.textContent = 'Loading...';
+        const seasonVal = seasonSelect.value;
+        const url = seasonVal ? `/api/gameHistory?season=${encodeURIComponent(seasonVal)}` : '/api/gameHistory';
+        const started = performance.now();
+        try {
+          const res = await fetch(url);
+          if (!res.ok) {
+            let msg = 'Failed to load games';
+            try { const err = await res.json(); msg = err?.message || msg; } catch(_){}
+            throw new Error(msg);
+          }
+          const items = await res.json();
+          ALL_GAMES = Array.isArray(items) ? items : [];
+          // Map filter population
+          const maps = uniqueMaps(ALL_GAMES);
+          const prev = mapSelect.value;
+          mapSelect.innerHTML = '<option value="__ALL__">All maps</option>' + maps.map(m => `<option value="${m.replace(/"/g,'&quot;')}">${m}</option>`).join('');
+          if (maps.includes(prev)) mapSelect.value = prev; else mapSelect.value = '__ALL__';
+          applyFilters();
+          const ms = Math.round(performance.now() - started);
+          metaEl.textContent = `Fetched ${ALL_GAMES?.length ?? 0} in ${ms}ms`;
+        } catch (e){
+          summaryEl.textContent = '';
+          feedbackEl.textContent = e?.message || String(e);
+        }
+      }
+
+      refreshBtn.addEventListener('click', loadGames);
+      seasonSelect.addEventListener('change', loadGames);
+      mapSelect.addEventListener('change', () => applyFilters());
+
+      (async function init(){
+        try { await loadSeasons(); } catch(e){ feedbackEl.textContent = e?.message || String(e); }
+        await loadGames();
+      })();
+    </script>
+  </body>
+  </html>

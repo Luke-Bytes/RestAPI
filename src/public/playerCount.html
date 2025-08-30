@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Player Count Graph</title>
+    <link rel="stylesheet" href="/styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/header.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
         body {
@@ -63,6 +65,7 @@
     </style>
   </head>
   <body>
+    <div id="site-header"></div>
     <div class="container">
       <h1>Player Count Graph</h1>
       <form id="timeRangeForm">
@@ -359,6 +362,8 @@
         <button id="untickAllButton" type="button">Untick All</button>
         <div class="chart-wrap">
       <canvas id="playerCountChart"></canvas>
+    </div>
+    </div>
     </div>
     <script>
       const API_URL="/api/playerCount";

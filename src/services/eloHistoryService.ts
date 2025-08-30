@@ -13,7 +13,6 @@ export async function fetchEloHistory(
 ): Promise<EloPoint[]> {
   const db: Db = await connectToDatabase();
 
-  // 1) Lookup player
   const ignRegex = new RegExp(`^${escapeRegex(latestIGN)}$`, "i");
   const player = await db
     .collection<{ _id: string }>("Player")
@@ -23,7 +22,6 @@ export async function fetchEloHistory(
     throw new Error(`Player '${latestIGN}' not found`);
   }
 
-  // 2) Determine season
   let seasonFilter: { [key: string]: any };
   if (seasonNumber) {
     const season = await db
@@ -34,7 +32,6 @@ export async function fetchEloHistory(
     if (!season) throw new Error(`Season ${seasonNumber} not found`);
     seasonFilter = { seasonId: season._id };
   } else {
-    // default to active season
     const activeSeason = await db
       .collection("Season")
       .findOne<{ _id: string }>({ isActive: true });
@@ -42,7 +39,6 @@ export async function fetchEloHistory(
     seasonFilter = { seasonId: activeSeason._id };
   }
 
-  // 3) Fetch and sort history
   const raw = await db
     .collection("EloHistory")
     .find<{ createdAt: Date; elo: number }>({
@@ -52,6 +48,5 @@ export async function fetchEloHistory(
     .sort({ createdAt: 1 })
     .toArray();
 
-  // 4) Return only the needed fields
   return raw.map(({ createdAt, elo }) => ({ createdAt, elo }));
 }

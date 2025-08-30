@@ -8,10 +8,10 @@ export const customQuery = async (
 ): Promise<void> => {
   const { collection, query, projection, pipeline } = req.body;
 
-  console.log(
-    "Received custom query request:",
-    JSON.stringify({ collection, query, projection, pipeline }, null, 2)
-  );
+  // console.debug(
+  //   "Received custom query request:",
+  //   JSON.stringify({ collection, query, projection, pipeline }, null, 2)
+  // );
 
   try {
     const queryOrPipeline = Array.isArray(pipeline) ? pipeline : query;
@@ -26,8 +26,6 @@ export const customQuery = async (
       .split('\n')
       .slice(0, 20)
       .join('\n');
-
-    console.log("Custom query results:\n" + resultsString);
 
     res.json(results);
   } catch (err) {
