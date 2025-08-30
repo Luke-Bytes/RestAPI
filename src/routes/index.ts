@@ -4,6 +4,7 @@ import queryRoutes from "./queryRoutes";
 import seasonRoutes from "./seasonRoutes";
 import playerCountRoutes from "./playerCountRoutes";
 import eloHistoryRoutes from "./eloHistoryRoutes";
+import gameHistoryRoutes from "./gameHistoryRoutes";
 
 const router = Router();
 
@@ -12,5 +13,6 @@ router.use("/custom-query", queryRoutes);
 router.use("/seasons", seasonRoutes);
 router.use("/playerCount", playerCountRoutes);
 router.use("/elohistory", eloHistoryRoutes);
+router.use("/gameHistory", gameHistoryRoutes);
 
 export default router;
