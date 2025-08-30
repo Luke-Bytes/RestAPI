@@ -386,167 +386,118 @@
       <canvas id="playerCountChart"></canvas>
     </div>
     <script>
-      const ctx = document.getElementById("playerCountChart").getContext("2d");
-      let playerCountChart;
+      const API_URL="/api/playerCounts";
+      let chart,lastPayload;
+      const qs=id=>document.getElementById(id);
+      const qsa=(sel,root=document)=>Array.from(root.querySelectorAll(sel));
+      const toDateInput=iso=>{const d=new Date(iso);const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`};
 
-      function getSelectedDataPoints() {
-        const checkboxes = document.querySelectorAll(
-          'input[name="datapoint"]:checked'
-        );
-        return Array.from(checkboxes).map((checkbox) => checkbox.value);
+      async function loadCounts({start,end}={}) {
+        const params=new URLSearchParams();
+        if(start) params.set("start",start); // YYYY-MM-DD
+        if(end) params.set("end",end);
+        const res=await fetch(`${API_URL}?${params.toString()}`);
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
       }
 
-      const colors = [
-        {
-          border: "rgba(25, 118, 210, 1)",
-          background: "rgba(25, 118, 210, 0.2)",
-        },
-        {
-          border: "rgba(220, 53, 69, 1)",
-          background: "rgba(220, 53, 69, 0.2)",
-        },
-        {
-          border: "rgba(40, 167, 69, 1)",
-          background: "rgba(40, 167, 69, 0.2)",
-        },
-        {
-          border: "rgba(255, 193, 7, 1)",
-          background: "rgba(255, 193, 7, 0.2)",
-        },
-        {
-          border: "rgba(108, 117, 125, 1)",
-          background: "rgba(108, 117, 125, 0.2)",
-        },
-      ];
+      function getSelectedKeys(){
+        return new Set(qsa('input[name="datapoint"]:checked').map(i=>i.value));
+      }
 
-      async function loadData(start, end) {
-        const params = new URLSearchParams();
-        if (start) params.append("start", start);
-        if (end) params.append("end", end);
+      function detectSeriesKeys(data){
+        const sample=data?.[0]||{};
+        return Object.keys(sample).filter(k=>k!=="timestamp" && typeof sample[k]==="number");
+      }
 
-        try {
-          const response = await fetch(`/api/playerCount?${params.toString()}`);
-          const data = await response.json();
-          console.log("Data fetched:", data);
+      function buildDatasets(payload, selected){
+        const {meta,data}=payload;
+        const keys=detectSeriesKeys(data);
 
-          const selectedDataPoints = getSelectedDataPoints();
-          console.log("Selected Data Points:", selectedDataPoints);
+        if(keys.length===0 && data?.length && typeof data[0].count==="number"){
+          return [{label:"Players",data:data.map(d=>({x:d.timestamp,y:+d.count})),borderWidth:1,pointRadius:meta.aggregated?2:0}];
+        }
+        const wanted=keys.filter(k=>selected.has(k));
+        return wanted.map(k=>({
+          label:k,
+          data:data.map(d=>({x:d.timestamp,y:+(d[k]??0)})),
+          borderWidth:1,
+          pointRadius:meta.aggregated?2:0
+        }));
+      }
 
-          const datasets = selectedDataPoints.map((point, index) => {
-            return {
-              label: point,
-              data: data.map((entry) => ({
-                x: entry.timestamp,
-                y: entry[point],
-              })),
-              borderColor: colors[index % colors.length].border,
-              backgroundColor: colors[index % colors.length].background,
-              fill: true,
-              tension: 0.1,
-              pointBackgroundColor: "#fff",
-              pointBorderColor: colors[index % colors.length].border,
-            };
-          });
+      function renderChart(payload){
+        lastPayload=payload;
+        const {meta,data}=payload;
+        const ctx=qs("playerCountChart").getContext("2d");
+        if(chart) chart.destroy();
 
-          let xMin, xMax;
-          if (start && end) {
-            xMin = new Date(start);
-            xMax = new Date(end);
-            xMax.setHours(23, 59, 59, 999);
-          } else if (data.length > 0) {
-            xMin = new Date(data[0].timestamp);
-            xMax = new Date(data[data.length - 1].timestamp);
+        const selected=getSelectedKeys();
+        const datasets=buildDatasets(payload,selected);
+
+        chart=new Chart(ctx,{
+          type:"line",
+          data:{datasets},
+          options:{
+            parsing:false,
+            animation:false,
+            normalized:true,
+            spanGaps:true,
+            plugins:{legend:{display:true},decimation:{enabled:true,algorithm:"lttb",samples:1200}},
+            scales:{
+              x:{type:"time",time:{unit:meta.aggregated?"day":"hour",round:meta.aggregated?"day":"minute"}},
+              y:{beginAtZero:true}
+            }
           }
+        });
 
-          if (playerCountChart) {
-            playerCountChart.destroy();
-          }
-          playerCountChart = new Chart(ctx, {
-            type: "line",
-            data: {
-              datasets: datasets,
-            },
-            options: {
-              scales: {
-                x: {
-                  type: "time",
-                  time: {
-                    tooltipFormat: "h:mm a",
-                    unit: "minute",
-                    stepSize: 30,
-                    displayFormats: {
-                      minute: "h:mm a",
-                    },
-                  },
-                  min: xMin,
-                  max: xMax,
-                  ticks: {
-                    autoSkip: false,
-                    color: "#e0e0e0",
-                  },
-                  title: { display: true, text: "Time", color: "#e0e0e0" },
-                  grid: { color: "rgba(255, 255, 255, 0.1)" },
-                },
-                y: {
-                  beginAtZero: true,
-                  title: {
-                    display: true,
-                    text: "Player Count",
-                    color: "#e0e0e0",
-                  },
-                  ticks: { color: "#e0e0e0" },
-                  grid: { color: "rgba(255, 255, 255, 0.1)" },
-                },
-              },
-              plugins: {
-                legend: { labels: { color: "#e0e0e0" } },
-                tooltip: {
-                  callbacks: {
-                    label: function (context) {
-                      return context.dataset.label + ": " + context.parsed.y;
-                    },
-                  },
-                },
-              },
-            },
-          });
-        } catch (error) {
-          console.error("Error loading player counts:", error);
+        if(qs("metaInfo")){
+          qs("metaInfo").textContent=`${meta.granularity.toUpperCase()} • ${toDateInput(meta.start)} → ${toDateInput(meta.end)} • ${meta.points} pts`;
+        }
+        if(!qs("start").value) qs("start").value=toDateInput(meta.start);
+        if(!qs("end").value) qs("end").value=toDateInput(meta.end);
+      }
+
+      function refreshFromSelections(){
+        if(!lastPayload) return;
+        renderChart(lastPayload);
+      }
+
+      async function init(){
+        try{
+          const payload=await loadCounts(); // server defaults to last month raw
+          renderChart(payload);
+        }catch(e){
+          console.error("Error loading player counts:",e);
+          alert("Failed to load player counts.");
         }
       }
 
-      document
-        .getElementById("timeRangeForm")
-        .addEventListener("submit", (e) => {
-          e.preventDefault();
-          const start = document.getElementById("start").value;
-          const end = document.getElementById("end").value;
-          loadData(start, end);
-        });
+      qs("timeRangeForm")?.addEventListener("submit",async(e)=>{
+        e.preventDefault();
+        const start=qs("start").value;
+        const end=qs("end").value;
+        try{
+          const payload=await loadCounts({start,end});
+          renderChart(payload);
+        }catch(err){
+          console.error("Error loading player counts:",err);
+          alert("Failed to load for selected range.");
+        }
+      });
 
-      document
-        .querySelectorAll('input[name="datapoint"]')
-        .forEach((checkbox) => {
-          checkbox.addEventListener("change", () => {
-            const start = document.getElementById("start").value;
-            const end = document.getElementById("end").value;
-            loadData(start, end);
-          });
-        });
+      qs("untickAllButton")?.addEventListener("click",()=>{
+        qsa('input[name="datapoint"]').forEach(i=>i.checked=false);
+        refreshFromSelections();
+      });
 
-      document
-        .getElementById("untickAllButton")
-        .addEventListener("click", () => {
-          document
-            .querySelectorAll('input[name="datapoint"]')
-            .forEach((checkbox) => {
-              checkbox.checked = false;
-            });
-          const start = document.getElementById("start").value;
-          const end = document.getElementById("end").value;
-          loadData(start, end);
-        });
-      loadData();
+      qsa('input[name="datapoint"]').forEach(i=>{
+        i.addEventListener("change",refreshFromSelections);
+      });
+
+      init();
     </script>
+
+
   </body>
 </html>
