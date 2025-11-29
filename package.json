@@ -5,8 +5,8 @@
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/server.js",
-    "start:pm2": "pm2 start dist/server.js",
-    "stop:pm2": "pm2 stop dist/server.js",
+    "start:pm2": "pm2 start dist/server.js --name restapi",
+    "stop:pm2": "pm2 stop restapi",
     "logs": "ls -t logs/*.log | head -n 1 | xargs tail -n 300",
     "clean": "rimraf dist",
     "lint": "eslint .",
