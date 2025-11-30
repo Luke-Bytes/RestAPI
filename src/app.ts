@@ -9,6 +9,7 @@ import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import sanitizeInput from "./middlewares/sanitizeInput";
 import * as path from "node:path";
+import { schedulePlayerCountFetch } from "./ajax/playerCount";
 
 dotenv.config();
 
@@ -35,7 +36,12 @@ app.use(
     },
   })
 );
-app.use(mongoSanitize());
+app.use((req, res, next) => {
+  if (req.path === '/api/custom-query') {
+    return next();
+  }
+  return mongoSanitize()(req, res, next);
+});
 app.use(sanitizeInput);
 
 const apiLimiter = rateLimit({
@@ -52,10 +58,24 @@ app.use(express.static(path.join(__dirname, "../src//public")));
 
 app.use("/api", routes);
 
+app.get("/playerCount", (req, res) => {
+  res.sendFile(path.join(__dirname, "../src/public/playerCount.html"));
+});
+
+app.get("/infographics", (req, res) => {
+  res.sendFile(path.join(__dirname, "../src/public/infographics.html"));
+});
+
+app.get("/gameHistory", (req, res) => {
+  res.sendFile(path.join(__dirname, "../src/public/gameHistory.html"));
+});
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../src/public/index.html"));
 });
 
 app.use(errorHandler);
+
+schedulePlayerCountFetch();
 
 export default app;

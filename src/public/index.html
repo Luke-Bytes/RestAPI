@@ -5,18 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Player Stats</title>
     <link rel="stylesheet" href="/styles.css" />
+    <script src="/header.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1"></script>
     <script src="/script.js" defer></script>
   </head>
   <body>
+    <div id="site-header"></div>
     <h1>Player Stats</h1>
     <div class="input-container">
       <input type="text" id="textInput" placeholder="Player Name" />
-      <select id="seasonSelect">
-      </select>
+      <select id="seasonSelect"></select>
       <button id="fetch-data-button">Go</button>
     </div>
 
     <div id="feedback"></div>
     <div id="result"></div>
+
+    <!-- Elo History Chart -->
+    <div id="chartContainer">
+      <canvas id="eloChart"></canvas>
+    </div>
   </body>
 </html>

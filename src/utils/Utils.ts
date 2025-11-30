@@ -4,3 +4,7 @@ export const getErrorMessage = (err: unknown): string => {
   }
   return "An unexpected error occurred";
 };
+
+export function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}

@@ -6,17 +6,26 @@ export const customQuery = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { collection, query, projection } = req.body;
+  const { collection, query, projection, pipeline } = req.body;
 
-  console.log(
-    "Received custom query request:",
-    JSON.stringify({ collection, query, projection }, null, 2)
-  );
+  // console.debug(
+  //   "Received custom query request:",
+  //   JSON.stringify({ collection, query, projection, pipeline }, null, 2)
+  // );
 
   try {
-    const results = await runCustomQuery(collection, query, projection);
+    const queryOrPipeline = Array.isArray(pipeline) ? pipeline : query;
 
-    console.log("Custom query results:", JSON.stringify(results, null, 2));
+    const results = await runCustomQuery(
+      collection,
+      queryOrPipeline,
+      projection
+    );
+
+    const resultsString = JSON.stringify(results, null, 2)
+      .split('\n')
+      .slice(0, 20)
+      .join('\n');
 
     res.json(results);
   } catch (err) {
@@ -27,13 +36,13 @@ export const customQuery = async (
           collection,
           query,
           projection,
+          pipeline,
           error: getErrorMessage(err),
         },
         null,
         2
       )
     );
-
     res.status(500).json({
       message: "An error occurred while processing the query",
       error: getErrorMessage(err),
