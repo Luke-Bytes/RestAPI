@@ -15,8 +15,9 @@
     "check-format": "prettier --check .",
     "rebuild": "git pull && npm run stop:pm2 && npm run build && npm run start:pm2",
     "ajax-playercount": "ts-node dist/ajax/testPlayerCount.js",
-    "logs-playercount": "ls -t logs/playerCounts/*.log | head -n 1 | xargs tail -n 300",
-    "analyse:game-count": "node dist/scripts/analyseGamePlayerCount.js"
+    "logs-playercount": "node dist/scripts/tailPlayerCounts.js",
+    "analyse:game-count": "node dist/scripts/analyseGamePlayerCount.js",
+    "convert:player-counts": "node dist/scripts/convertPlayerCounts.js"
   },
   "dependencies": {
     "ajv": "^8.17.1",

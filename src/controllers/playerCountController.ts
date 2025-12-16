@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import fs from "fs/promises";
 import path from "path";
 import { glob } from "glob";
+import { gunzip } from "node:zlib";
+import { promisify } from "node:util";
 import { getErrorMessage } from "../utils/Utils";
 import cache from "../utils/Cache";
 
@@ -69,15 +71,20 @@ export const getPlayerCount = async (req: Request, res: Response): Promise<void>
   }
 
   try {
-    const logDir = path.join(process.cwd(), "logs", "playerCounts");
-    const logFiles: string[] = await glob(`${logDir}/*.log`);
+    const logDir = path.join(process.cwd(), "playerCounts");
+    const logFiles: string[] = await glob(`${logDir}/*.log.gz`);
 
     let allData: any[] = [];
+    const gunzipAsync = promisify(gunzip);
     for (const file of logFiles) {
-      const content = await fs.readFile(file, "utf-8");
-      const lines = content.split("\n").filter((line) => line.trim() !== "");
+      const compressed = await fs.readFile(file);
+      const content = await gunzipAsync(compressed);
+      const lines = content
+        .toString("utf-8")
+        .split("\n")
+        .filter((line: string) => line.trim() !== "");
       const parsedData = lines
-        .map((line) => {
+        .map((line: string) => {
           try {
             return JSON.parse(line);
           } catch {
@@ -88,7 +95,7 @@ export const getPlayerCount = async (req: Request, res: Response): Promise<void>
       allData.push(...parsedData);
     }
 
-    const filtered = allData.filter((entry) => {
+    const filtered = allData.filter((entry: any) => {
       const ts = new Date(entry.timestamp);
       return ts >= startTime && ts <= endTime;
     });
