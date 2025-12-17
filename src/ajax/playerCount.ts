@@ -62,7 +62,7 @@ function scheduleMidnightFlush() {
 
 async function fetchPlayerCounts() {
   try {
-    const url = `https://shotbow.net/serverList.json?t=${new Date().getTime()}`;
+    const url = `https://shotbow.net/serverList.json?t=${Date.now()}`;
     const response = await axios.get(url);
     const data = response.data;
 
